@@ -10,6 +10,7 @@ jobs:
   build-and-deploy:
     name: Build & Deploy (Dev Runner)
     runs-on: [self-hosted, Linux, X64, dev02]
+    environment: dev
 
     steps:
       - name: Checkout
