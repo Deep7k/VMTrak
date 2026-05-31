@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const { parse: parseCsv } = require('csv-parse/sync');
 const { db } = require('../db/database');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { writeAudit, getIp } = require('../middleware/audit');
@@ -85,6 +86,111 @@ router.get('/export', authenticate, (req, res, next) => {
     res.send(csv);
   } catch (err) { next(err); }
 });
+
+// ── POST /api/vms/import  [admin] ─────────────────────────────────────────────
+router.post(
+  '/import',
+  authenticate,
+  requireRole('admin'),
+  express.text({ type: ['text/csv', 'text/plain', 'application/octet-stream'] }),
+  (req, res, next) => {
+    try {
+      const body = typeof req.body === 'string' ? req.body : '';
+      if (!body.trim()) return res.status(400).json({ error: 'Request body is empty' });
+
+      let rows;
+      try {
+        rows = parseCsv(body, { columns: true, skip_empty_lines: true, trim: true });
+      } catch {
+        return res.status(400).json({ error: 'Invalid CSV format' });
+      }
+
+      if (rows.length === 0) return res.status(400).json({ error: 'CSV contains no data rows' });
+
+      const NUMERIC = ['vcpu', 'ram_gb', 'disk_gb'];
+      const errors  = [];
+      let imported  = 0;
+
+      const insert = db.prepare(`
+        INSERT INTO vms (
+          vm_name, vm_tag, description, hypervisor, cluster, datacenter,
+          os_type, os_version, hostname, ip_address, vlan, mac_address,
+          vcpu, ram_gb, disk_gb, power_state, environment, status,
+          owner, department, application, expiry_date, notes,
+          created_at, updated_at, created_by, updated_by
+        ) VALUES (
+          @vm_name, @vm_tag, @description, @hypervisor, @cluster, @datacenter,
+          @os_type, @os_version, @hostname, @ip_address, @vlan, @mac_address,
+          @vcpu, @ram_gb, @disk_gb, @power_state, @environment, @status,
+          @owner, @department, @application, @expiry_date, @notes,
+          @now, @now, @user_id, @user_id
+        )
+      `);
+
+      const runImport = db.transaction(() => {
+        const now = new Date().toISOString();
+
+        rows.forEach((rawRow, idx) => {
+          const rowNum = idx + 2; // 1-based + header
+
+          // Normalise keys to lowercase, coerce empty strings → undefined
+          const row = {};
+          for (const [k, v] of Object.entries(rawRow)) {
+            const key = k.toLowerCase().trim();
+            row[key] = v === '' ? undefined : v;
+          }
+          for (const f of NUMERIC) {
+            if (row[f] != null) row[f] = Number(row[f]);
+          }
+
+          const result = vmSchema.safeParse(row);
+          if (!result.success) {
+            const fieldErrors = result.error.flatten().fieldErrors;
+            const reason = Object.entries(fieldErrors)
+              .map(([f, e]) => `${f}: ${e[0]}`).join('; ');
+            errors.push({ row: rowNum, vm_name: rawRow.vm_name || '', reason });
+            return;
+          }
+
+          const d = result.data;
+          try {
+            insert.run({
+              vm_name: d.vm_name, vm_tag: d.vm_tag ?? null,
+              description: d.description ?? null, hypervisor: d.hypervisor ?? null,
+              cluster: d.cluster ?? null, datacenter: d.datacenter ?? null,
+              os_type: d.os_type ?? null, os_version: d.os_version ?? null,
+              hostname: d.hostname ?? null, ip_address: d.ip_address ?? null,
+              vlan: d.vlan ?? null, mac_address: d.mac_address ?? null,
+              vcpu: d.vcpu ?? null, ram_gb: d.ram_gb ?? null, disk_gb: d.disk_gb ?? null,
+              power_state: d.power_state ?? 'unknown',
+              environment: d.environment ?? null,
+              status: d.status ?? 'active',
+              owner: d.owner ?? null, department: d.department ?? null,
+              application: d.application ?? null, expiry_date: d.expiry_date ?? null,
+              notes: d.notes ?? null,
+              now, user_id: req.user.id,
+            });
+            imported++;
+          } catch (e) {
+            const reason = e.message?.includes('UNIQUE') ? 'VM name already exists' : e.message;
+            errors.push({ row: rowNum, vm_name: d.vm_name, reason });
+          }
+        });
+      });
+
+      runImport();
+
+      writeAudit({
+        user_id: req.user.id, username: req.user.username,
+        action: 'vm.import', entity_type: 'vm',
+        detail: { imported, skipped: errors.length, total: rows.length },
+        ip_address: getIp(req),
+      });
+
+      res.json({ imported, skipped: errors.length, errors });
+    } catch (err) { next(err); }
+  }
+);
 
 // ── GET /api/vms/:id ──────────────────────────────────────────────────────────
 router.get('/:id', authenticate, (req, res, next) => {

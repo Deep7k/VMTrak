@@ -12,6 +12,125 @@ import {
 } from '@tanstack/react-table';
 import api from '../api/client';
 
+const CSV_COLUMNS = [
+  'vm_name','hostname','ip_address','os_type','os_version','environment',
+  'status','power_state','vcpu','ram_gb','disk_gb','owner','department',
+  'application','description','notes','expiry_date','vm_tag',
+  'hypervisor','cluster','datacenter','vlan','mac_address',
+];
+
+function downloadTemplate() {
+  const blob = new Blob([CSV_COLUMNS.join(',') + '\n'], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'vmtrak-import-template.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function ImportModal({ onClose, onImported }) {
+  const [file, setFile]       = useState(null);
+  const [result, setResult]   = useState(null);
+  const [error, setError]     = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleUpload = async () => {
+    if (!file) { setError('Select a CSV file first.'); return; }
+    setError(''); setLoading(true);
+    try {
+      const text = await file.text();
+      const { data } = await api.post('/vms/import', text, {
+        headers: { 'Content-Type': 'text/csv' },
+      });
+      setResult(data);
+      if (data.imported > 0) onImported();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Import failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
+      <div className="glass-modal w-full max-w-lg space-y-5">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h2 className="font-mono font-bold text-slate-100">Import VMs from CSV</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-lg leading-none">✕</button>
+        </div>
+
+        {/* Template download */}
+        <div className="p-3 rounded font-mono text-xs text-slate-400" style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+          <p className="mb-2">Only <span className="text-slate-200">vm_name</span> is required. All other columns are optional.</p>
+          <button onClick={downloadTemplate} className="text-emerald-400 hover:text-emerald-300">
+            ↓ Download template CSV
+          </button>
+        </div>
+
+        {/* File picker */}
+        {!result && (
+          <div>
+            <label className="block font-mono text-xs text-slate-400 mb-2">CSV file</label>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={e => { setFile(e.target.files[0] || null); setError(''); }}
+              className="input-base"
+              style={{ paddingTop: '5px' }}
+            />
+          </div>
+        )}
+
+        {error && (
+          <p className="font-mono text-xs text-red-400">{error}</p>
+        )}
+
+        {/* Result summary */}
+        {result && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-3 text-center">
+              {[
+                { label: 'Imported', value: result.imported, color: 'text-emerald-400' },
+                { label: 'Skipped',  value: result.skipped,  color: 'text-yellow-400' },
+                { label: 'Total',    value: result.imported + result.skipped, color: 'text-slate-300' },
+              ].map(s => (
+                <div key={s.label} className="p-3 rounded" style={{ background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                  <div className={`font-mono text-2xl font-bold ${s.color}`}>{s.value}</div>
+                  <div className="font-mono text-xs text-slate-500 mt-1">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {result.errors.length > 0 && (
+              <div className="space-y-1 max-h-40 overflow-y-auto">
+                <p className="font-mono text-xs text-slate-500 uppercase">Errors</p>
+                {result.errors.map((e, i) => (
+                  <div key={i} className="font-mono text-xs text-red-300 p-2 rounded" style={{ background: 'rgba(226,75,74,0.08)', border: '0.5px solid rgba(226,75,74,0.2)' }}>
+                    Row {e.row} {e.vm_name && `(${e.vm_name})`}: {e.reason}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-2 justify-end pt-2" style={{ borderTop: '0.5px solid rgba(255,255,255,0.07)' }}>
+          <button onClick={onClose} className="btn-secondary">
+            {result ? 'Close' : 'Cancel'}
+          </button>
+          {!result && (
+            <button onClick={handleUpload} disabled={loading || !file} className="btn-primary disabled:opacity-50">
+              {loading ? 'Importing...' : 'Import'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function ActionsMenu({ vm, isAdmin }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -97,6 +216,7 @@ export default function VMList() {
   const [search, setSearch] = useState('');
   const [environment, setEnvironment] = useState('');
   const [status, setStatus] = useState('active');
+  const [showImport, setShowImport] = useState(false);
 
   const columns = useMemo(() => [
     {
@@ -182,9 +302,14 @@ export default function VMList() {
           <p className="font-mono text-sm mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Total: {total} VMs</p>
         </div>
         {isAdmin && (
-          <button onClick={() => navigate('/vms/new')} className="btn-primary">
-            + New VM
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowImport(true)} className="btn-secondary">
+              ↑ Import CSV
+            </button>
+            <button onClick={() => navigate('/vms/new')} className="btn-primary">
+              + New VM
+            </button>
+          </div>
         )}
       </div>
 
@@ -291,6 +416,13 @@ export default function VMList() {
             </button>
           </div>
         </div>
+      )}
+
+      {showImport && (
+        <ImportModal
+          onClose={() => setShowImport(false)}
+          onImported={loadVMs}
+        />
       )}
     </div>
   );
