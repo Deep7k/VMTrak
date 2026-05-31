@@ -47,10 +47,10 @@ export default function VMForm() {
     };
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: value === '' ? null : value,
+            [name]: value === '' ? null : type === 'number' ? Number(value) : value,
         }));
     };
 
