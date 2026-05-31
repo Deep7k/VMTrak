@@ -29,14 +29,14 @@ jobs:
 
       - name: Health check
         run: |
-          echo "Waiting for backend to be healthy..."
+          echo "Waiting for stack to be healthy..."
           for i in $(seq 1 12); do
-            if curl -sf http://localhost:3001/api/health > /dev/null; then
-              echo "Backend healthy."
+            if curl -sf http://localhost:3000/api/health > /dev/null; then
+              echo "Stack healthy."
               exit 0
             fi
             sleep 5
           done
           echo "Health check failed — dumping logs"
-          docker compose logs backend --tail=50
+          docker compose logs --tail=50
           exit 1
