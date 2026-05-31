@@ -4,6 +4,7 @@ import api from '../api/client';
 export default function CredentialPanel({ vmId, credentials }) {
   const [revealed, setRevealed] = useState({});
   const [timers, setTimers] = useState({});
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     // Cleanup interval on unmount
@@ -53,9 +54,10 @@ export default function CredentialPanel({ vmId, credentials }) {
     }
   };
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text, credId) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard');
+    setCopiedId(credId);
+    setTimeout(() => setCopiedId(null), 1500);
   };
 
   return (
@@ -84,10 +86,10 @@ export default function CredentialPanel({ vmId, credentials }) {
                 {revealed[cred.id] ? (
                   <div className="text-right">
                     <button
-                      onClick={() => copyToClipboard(revealed[cred.id])}
-                      className="text-emerald-400 hover:text-emerald-300 font-mono text-xs"
+                      onClick={() => copyToClipboard(revealed[cred.id], cred.id)}
+                      className={`font-mono text-xs transition-colors ${copiedId === cred.id ? 'text-slate-400 cursor-default' : 'text-emerald-400 hover:text-emerald-300'}`}
                     >
-                      Copy
+                      {copiedId === cred.id ? 'Copied!' : 'Copy'}
                     </button>
                     <div className="text-xs text-red-400 mt-1">
                       Expires in {timers[cred.id]}s

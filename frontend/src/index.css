@@ -76,6 +76,12 @@
         border-color: rgba(29,158,117,0.7);
     }
 
+    /* Force dark background on native select option list */
+    select.input-base option {
+        background: #12151e;
+        color: rgba(255,255,255,0.8);
+    }
+
     /* ── Buttons ── */
     .btn-primary {
         padding: 6px 14px;
