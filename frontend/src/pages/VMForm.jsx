@@ -2,6 +2,134 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 
+function CredentialsSubCard({ vmId }) {
+    const [credentials, setCredentials] = useState([]);
+    const [newCred, setNewCred] = useState({ username: '', password: '', account_type: 'primary' });
+    const [showPassword, setShowPassword] = useState(false);
+    const [credError, setCredError] = useState('');
+    const [isAdding, setIsAdding] = useState(false);
+
+    useEffect(() => {
+        api.get(`/vms/${vmId}/credentials`)
+            .then(({ data }) => setCredentials(data))
+            .catch(() => {});
+    }, [vmId]);
+
+    const handleAdd = async () => {
+        if (!newCred.username.trim() || !newCred.password.trim()) {
+            setCredError('Username and password are required');
+            return;
+        }
+        setCredError('');
+        setIsAdding(true);
+        try {
+            const { data } = await api.post(`/vms/${vmId}/credentials`, newCred);
+            setCredentials(prev => [...prev, data]);
+            setNewCred({ username: '', password: '', account_type: 'primary' });
+        } catch (err) {
+            setCredError(err.response?.data?.error || 'Failed to add credential');
+        } finally {
+            setIsAdding(false);
+        }
+    };
+
+    const handleDelete = async (credId) => {
+        try {
+            await api.delete(`/vms/${vmId}/credentials/${credId}`);
+            setCredentials(prev => prev.filter(c => c.id !== credId));
+        } catch {
+            setCredError('Failed to delete credential');
+        }
+    };
+
+    return (
+        <div className="border border-slate-700 rounded p-5 space-y-4 bg-slate-800/30">
+            <h2 className="text-sm font-mono font-bold text-slate-300 uppercase">Credentials</h2>
+
+            {/* Existing credentials */}
+            {credentials.length > 0 && (
+                <div className="space-y-2">
+                    {credentials.map(cred => (
+                        <div key={cred.id} className="flex items-center justify-between bg-slate-800 border border-slate-700 rounded px-4 py-3">
+                            <div className="flex items-center gap-3">
+                                <span className="font-mono text-sm text-slate-100">{cred.username}</span>
+                                <span className={`px-2 py-0.5 rounded text-xs font-mono ${cred.account_type === 'primary' ? 'bg-emerald-900/40 text-emerald-300' : 'bg-slate-700 text-slate-400'}`}>
+                                    {cred.account_type}
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => handleDelete(cred.id)}
+                                className="text-red-400 hover:text-red-300 font-mono text-xs"
+                            >
+                                Remove
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Add new credential */}
+            <div className="grid grid-cols-1 gap-3 pt-2 border-t border-slate-700">
+                <p className="text-xs font-mono text-slate-500 uppercase">Add Credential</p>
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block font-mono text-xs text-slate-400 mb-1">Username</label>
+                        <input
+                            type="text"
+                            value={newCred.username}
+                            onChange={e => setNewCred(prev => ({ ...prev, username: e.target.value }))}
+                            className="input-base"
+                            placeholder="administrator"
+                        />
+                    </div>
+                    <div>
+                        <label className="block font-mono text-xs text-slate-400 mb-1">Type</label>
+                        <select
+                            value={newCred.account_type}
+                            onChange={e => setNewCred(prev => ({ ...prev, account_type: e.target.value }))}
+                            className="input-base"
+                        >
+                            <option value="primary">Primary</option>
+                            <option value="others">Others</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label className="block font-mono text-xs text-slate-400 mb-1">Password</label>
+                    <div className="flex gap-2">
+                        <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={newCred.password}
+                            onChange={e => setNewCred(prev => ({ ...prev, password: e.target.value }))}
+                            className="input-base flex-1"
+                            placeholder="••••••••"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(v => !v)}
+                            className="btn-secondary px-3 text-xs"
+                        >
+                            {showPassword ? 'Hide' : 'Show'}
+                        </button>
+                    </div>
+                </div>
+                {credError && (
+                    <p className="text-red-400 font-mono text-xs">{credError}</p>
+                )}
+                <button
+                    type="button"
+                    onClick={handleAdd}
+                    disabled={isAdding}
+                    className="btn-primary self-start disabled:opacity-50"
+                >
+                    {isAdding ? 'Adding...' : 'Add Credential'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function VMForm() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -273,6 +401,9 @@ export default function VMForm() {
                         disabled={isSaving}
                     />
                 </div>
+
+                {/* Credentials (edit mode only) */}
+                {isEditing && <CredentialsSubCard vmId={id} />}
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-4 border-t border-slate-700">

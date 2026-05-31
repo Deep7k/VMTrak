@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   useReactTable,
@@ -9,6 +10,81 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 import api from '../api/client';
+
+function ActionsMenu({ vm }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const btnRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    if (!open) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+    setOpen(o => !o);
+  };
+
+  const downloadRDP = async () => {
+    setOpen(false);
+    try {
+      const response = await api.get(`/vms/${vm.id}/rdp`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${vm.vm_name}.rdp`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert('Failed to download RDP file');
+    }
+  };
+
+  const menuItems = [
+    { label: 'View',         action: () => { navigate(`/vms/${vm.id}`);        setOpen(false); } },
+    { label: 'Edit',         action: () => { navigate(`/vms/${vm.id}/edit`);    setOpen(false); } },
+    { label: 'Download RDP', action: () => downloadRDP() },
+  ];
+
+  return (
+    <div onClick={e => e.stopPropagation()}>
+      <button
+        ref={btnRef}
+        onClick={handleToggle}
+        className="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-700 text-slate-400 hover:text-slate-100 text-lg leading-none"
+        title="Actions"
+      >
+        ⋮
+      </button>
+      {open && createPortal(
+        <div
+          style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 9999 }}
+          className="w-44 bg-slate-800 border border-slate-600 rounded shadow-xl py-1"
+          onMouseDown={e => e.stopPropagation()}
+        >
+          {menuItems.map(item => (
+            <button
+              key={item.label}
+              onClick={item.action}
+              className="w-full text-left px-4 py-2 font-mono text-sm text-slate-300 hover:bg-slate-700 hover:text-emerald-400"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
 
 export default function VMList() {
   const navigate = useNavigate();
@@ -49,41 +125,17 @@ export default function VMList() {
       },
     },
     {
-      accessorKey: 'power_state',
-      header: 'Power',
-      cell: info => {
-        const val = info.getValue();
-        const colors = {
-          on:        'bg-emerald-900/40 text-emerald-300',
-          off:       'bg-slate-700 text-slate-300',
-          suspended: 'bg-yellow-900/40 text-yellow-300',
-        };
-        return (
-          <span className={`px-2 py-1 rounded text-xs font-mono ${colors[val] || 'text-slate-400'}`}>
-            {val}
-          </span>
-        );
-      },
+      accessorKey: 'primary_username',
+      header: 'Username',
+      cell: info => <div className="font-mono text-sm text-slate-300">{info.getValue() || '—'}</div>,
     },
     {
-      accessorKey: 'owner',
-      header: 'Owner',
-      cell: info => <div className="text-sm text-slate-400">{info.getValue() || '—'}</div>,
-    },
-    {
-      accessorKey: 'id',
+      id: 'actions',
       header: '',
       enableSorting: false,
-      cell: info => (
-        <button
-          onClick={() => navigate(`/vms/${info.getValue()}`)}
-          className="text-emerald-400 hover:text-emerald-300 font-mono text-sm"
-        >
-          View →
-        </button>
-      ),
+      cell: info => <ActionsMenu vm={info.row.original} />,
     },
-  ], [navigate]);
+  ], []);
 
   useEffect(() => {
     loadVMs();
@@ -200,7 +252,7 @@ export default function VMList() {
                   onClick={() => navigate(`/vms/${row.original.id}`)}
                 >
                   {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                    <td key={cell.id} className="px-4 py-3">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

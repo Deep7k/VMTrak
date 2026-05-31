@@ -76,14 +76,14 @@ const updateVmSchema = vmSchema.partial().extend({
 const createCredentialSchema = z.object({
   username:     z.string().min(1).max(128),
   password:     z.string().min(1).max(512),
-  account_type: z.enum(['admin', 'user', 'service']).default('user'),
+  account_type: z.enum(['primary', 'others']).default('primary'),
   notes:        z.string().max(1024).optional().nullable(),
 });
 
 const updateCredentialSchema = z.object({
   username:     z.string().min(1).max(128).optional(),
   password:     z.string().min(1).max(512).optional(),
-  account_type: z.enum(['admin', 'user', 'service']).optional(),
+  account_type: z.enum(['primary', 'others']).optional(),
   notes:        z.string().max(1024).optional().nullable(),
 });
 

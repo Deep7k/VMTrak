@@ -97,8 +97,8 @@ CREATE TABLE IF NOT EXISTS vm_credentials (
   password_enc  TEXT    NOT NULL,
   password_iv   TEXT    NOT NULL,
   password_tag  TEXT    NOT NULL,
-  account_type  TEXT    NOT NULL DEFAULT 'user'
-                  CHECK (account_type IN ('admin', 'user', 'service')),
+  account_type  TEXT    NOT NULL DEFAULT 'primary'
+                  CHECK (account_type IN ('primary', 'others')),
   notes         TEXT,
   created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
   updated_at    TEXT    NOT NULL DEFAULT (datetime('now')),

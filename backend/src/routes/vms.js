@@ -44,7 +44,12 @@ router.get('/', authenticate, (req, res, next) => {
 
     const total = db.prepare(`SELECT COUNT(*) as n FROM vms ${whereClause}`).get(...params).n;
     const rows = db.prepare(
-      `SELECT * FROM vms ${whereClause} ORDER BY ${sortCol} ${order} LIMIT ? OFFSET ?`
+      `SELECT vms.*, (
+         SELECT username FROM vm_credentials
+         WHERE vm_id = vms.id AND account_type = 'primary'
+         LIMIT 1
+       ) as primary_username
+       FROM vms ${whereClause} ORDER BY ${sortCol} ${order} LIMIT ? OFFSET ?`
     ).all(...params, q.limit, offset);
 
     res.json({ data: rows, total, page: q.page, limit: q.limit });

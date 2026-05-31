@@ -65,6 +65,7 @@ async function seedAdminUser() {
 // ── Initialise ────────────────────────────────────────────────────────────────
 async function initDb() {
   runMigrations();
+  db.pragma('foreign_keys = ON'); // re-enable after any migration that disables it
   await seedAdminUser();
 }
 

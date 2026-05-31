@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 const menuItems = [
     { label: 'Dashboard', icon: '⊞', path: '/dashboard' },
     { label: 'VMs', icon: '◼', path: '/vms' },
-    { label: 'Credentials', icon: '◆', path: '/credentials' },
     { label: 'Users', icon: '⊙', path: '/users' },
     { label: 'Audit Log', icon: '⊕', path: '/audit' },
 ];
