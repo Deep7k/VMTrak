@@ -88,27 +88,27 @@ function AuditRow({ entry }) {
   return (
     <>
       <tr
-        className={`border-b border-slate-700 transition-colors ${hasDetail ? 'cursor-pointer hover:bg-slate-800/50' : ''}`}
+        className={hasDetail ? 'cursor-pointer' : ''}
         onClick={() => hasDetail && setExpanded(e => !e)}
       >
-        <td className="px-4 py-3 font-mono text-xs text-slate-400 whitespace-nowrap">
+        <td className="font-mono text-xs whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.35)' }}>
           {entry.created_at?.replace('T', ' ').slice(0, 19)}
         </td>
-        <td className="px-4 py-3 font-mono text-sm text-slate-300">{entry.username || '—'}</td>
-        <td className="px-4 py-3"><ActionBadge action={entry.action} /></td>
-        <td className="px-4 py-3 font-mono text-xs text-slate-300">
-          {entry.entity_type && <span className="text-slate-500">{entry.entity_type} </span>}
+        <td className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{entry.username || '—'}</td>
+        <td><ActionBadge action={entry.action} /></td>
+        <td className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          {entry.entity_type && <span style={{ color: 'rgba(255,255,255,0.3)' }}>{entry.entity_type} </span>}
           {entry.entity_name}
         </td>
-        <td className="px-4 py-3 font-mono text-xs text-slate-400">{entry.ip_address || '—'}</td>
-        <td className="px-4 py-3 text-xs text-slate-500">
+        <td className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{entry.ip_address || '—'}</td>
+        <td className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
           {hasDetail && (
             <span className="font-mono">{expanded ? '▲ hide' : '▼ detail'}</span>
           )}
         </td>
       </tr>
       {expanded && hasDetail && (
-        <tr className="border-b border-slate-700 bg-slate-900/40">
+        <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
           <td colSpan={6} className="px-6 pb-3 pt-1">
             <DetailView detail={entry.detail} />
           </td>
@@ -177,8 +177,8 @@ export default function AuditPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-mono font-bold text-slate-100">Audit Log</h1>
-        <p className="text-slate-400 font-mono text-sm mt-1">{total} events</p>
+        <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#e8e8e8', margin: 0 }}>Audit Log</h1>
+        <p className="font-mono text-sm mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{total} events</p>
       </div>
 
       {/* Filters */}
@@ -231,10 +231,10 @@ export default function AuditPage() {
       ) : (
         <div className="card-base overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-800 border-b border-slate-700">
+            <thead>
               <tr>
                 {['Timestamp', 'User', 'Action', 'Entity', 'IP Address', ''].map((h, i) => (
-                  <th key={i} className="px-4 py-3 text-left font-mono font-semibold text-slate-300 text-xs uppercase tracking-wide">{h}</th>
+                  <th key={i}>{h}</th>
                 ))}
               </tr>
             </thead>

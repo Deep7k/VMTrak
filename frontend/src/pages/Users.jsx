@@ -3,8 +3,8 @@ import api from '../api/client';
 
 function Modal({ title, onClose, children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-slate-800 border border-slate-700 rounded w-full max-w-md p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
+      <div className="glass-modal space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-mono font-bold text-slate-100 text-lg">{title}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-100 text-2xl leading-none">&times;</button>
@@ -250,8 +250,8 @@ export default function UsersPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-mono font-bold text-slate-100">Users</h1>
-          <p className="text-slate-400 font-mono text-sm mt-1">{users.length} users</p>
+          <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#e8e8e8', margin: 0 }}>Users</h1>
+          <p className="font-mono text-sm mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{users.length} users</p>
         </div>
         <button onClick={() => setShowCreate(true)} className="btn-primary">+ New User</button>
       </div>
@@ -263,22 +263,22 @@ export default function UsersPage() {
       ) : (
         <div className="card-base overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-800 border-b border-slate-700">
+            <thead>
               <tr>
                 {['Username', 'Email', 'Role', 'Status', 'Created', 'Actions'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-mono font-semibold text-slate-300 text-xs uppercase tracking-wide">{h}</th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {users.map(u => (
-                <tr key={u.id} className="border-b border-slate-700 hover:bg-slate-800/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-sm text-slate-100">{u.username}</td>
-                  <td className="px-4 py-3 font-mono text-sm text-slate-300">{u.email}</td>
-                  <td className="px-4 py-3"><RoleBadge role={u.role} /></td>
-                  <td className="px-4 py-3"><ActiveBadge active={u.is_active} /></td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-400">{u.created_at?.slice(0, 10)}</td>
-                  <td className="px-4 py-3">
+                <tr key={u.id}>
+                  <td className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>{u.username}</td>
+                  <td className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>{u.email}</td>
+                  <td><RoleBadge role={u.role} /></td>
+                  <td><ActiveBadge active={u.is_active} /></td>
+                  <td className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{u.created_at?.slice(0, 10)}</td>
+                  <td>
                     <div className="flex gap-2 flex-wrap">
                       <button onClick={() => setEditTarget(u)} className="btn-secondary text-xs px-2 py-1">Edit</button>
                       <button onClick={() => setResetTarget(u)} className="btn-secondary text-xs px-2 py-1">Reset PW</button>

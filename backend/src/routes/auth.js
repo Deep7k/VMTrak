@@ -7,7 +7,7 @@ const crypto    = require('crypto');
 const { db }    = require('../db/database');
 const { authenticate } = require('../middleware/auth');
 const { writeAudit, getIp } = require('../middleware/audit');
-const { loginSchema, validate } = require('../utils/validators');
+const { loginSchema, initialSetupSchema, validate } = require('../utils/validators');
 
 const router = express.Router();
 
@@ -70,7 +70,13 @@ router.post('/login', (req, res, next) => {
 
     res.json({
       accessToken,
-      user: { id: user.id, username: user.username, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        must_change_password: user.must_change_password === 1,
+      },
     });
   } catch (err) {
     next(err);
@@ -129,8 +135,49 @@ router.post('/logout', authenticate, (req, res, next) => {
 
 // GET /api/auth/me
 router.get('/me', authenticate, (req, res) => {
-  const user = db.prepare('SELECT id, username, email, role, created_at FROM users WHERE id = ?').get(req.user.id);
-  res.json(user);
+  const user = db.prepare(
+    'SELECT id, username, email, role, must_change_password, created_at FROM users WHERE id = ?'
+  ).get(req.user.id);
+  res.json({ ...user, must_change_password: user.must_change_password === 1 });
+});
+
+// POST /api/auth/complete-setup
+router.post('/complete-setup', authenticate, (req, res, next) => {
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE id = ? AND is_active = 1').get(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.must_change_password) return res.status(400).json({ error: 'Setup already completed' });
+
+    const { email, password } = validate(initialSetupSchema, req.body);
+
+    const emailConflict = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, user.id);
+    if (emailConflict) return res.status(409).json({ error: 'Email already in use' });
+
+    const hash = bcrypt.hashSync(password, 12);
+
+    db.prepare(`
+      UPDATE users
+      SET email = ?, password_hash = ?, must_change_password = 0, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(email, hash, user.id);
+
+    // Invalidate all existing refresh tokens so the next request uses the fresh state
+    db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').run(user.id);
+
+    writeAudit({
+      user_id: user.id,
+      username: user.username,
+      action: 'auth.setup_completed',
+      entity_type: 'user',
+      entity_id: user.id,
+      entity_name: user.username,
+      ip_address: getIp(req),
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;

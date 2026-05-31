@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import CredentialPanel from '../components/CredentialPanel';
+import { useAuthStore } from '../store/authStore';
 
 export default function VMDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const isAdmin = useAuthStore(s => s.user?.role === 'admin');
     const [vm, setVm] = useState(null);
     const [credentials, setCredentials] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -63,21 +65,23 @@ export default function VMDetail() {
                     <button onClick={() => navigate('/vms')} className="text-emerald-400 hover:text-emerald-300 font-mono text-sm mb-2">
                         ← Back to VMs
                     </button>
-                    <h1 className="text-2xl font-mono font-bold text-slate-100">{vm.vm_name}</h1>
-                    <p className="text-slate-400 font-mono text-sm mt-1">{vm.ip_address}</p>
+                    <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#e8e8e8', margin: 0 }}>{vm.vm_name}</h1>
+                    <p className="font-mono text-sm mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{vm.ip_address}</p>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={downloadRDP} className="btn-primary">
                         Download RDP
                     </button>
-                    <button onClick={() => navigate(`/vms/${id}/edit`)} className="btn-secondary">
-                        Edit
-                    </button>
+                    {isAdmin && (
+                        <button onClick={() => navigate(`/vms/${id}/edit`)} className="btn-secondary">
+                            Edit
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* VM Details */}
-            <div className="card-base border border-slate-700 p-6 space-y-4">
+            <div className="card-base p-6 space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                     <div>
                         <label className="text-xs font-mono text-slate-400 uppercase">Hostname</label>
@@ -120,7 +124,7 @@ export default function VMDetail() {
                 </div>
 
                 {vm.description && (
-                    <div className="pt-4 border-t border-slate-700">
+                    <div style={{ paddingTop: '16px', borderTop: '0.5px solid rgba(255,255,255,0.07)' }}>
                         <label className="text-xs font-mono text-slate-400 uppercase">Description</label>
                         <p className="text-slate-100 mt-2 whitespace-pre-wrap">{vm.description}</p>
                     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 import {
   useReactTable,
   getCoreRowModel,
@@ -11,7 +12,7 @@ import {
 } from '@tanstack/react-table';
 import api from '../api/client';
 
-function ActionsMenu({ vm }) {
+function ActionsMenu({ vm, isAdmin }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 0 });
@@ -49,8 +50,8 @@ function ActionsMenu({ vm }) {
   };
 
   const menuItems = [
-    { label: 'View',         action: () => { navigate(`/vms/${vm.id}`);        setOpen(false); } },
-    { label: 'Edit',         action: () => { navigate(`/vms/${vm.id}/edit`);    setOpen(false); } },
+    { label: 'View',         action: () => { navigate(`/vms/${vm.id}`);     setOpen(false); } },
+    ...(isAdmin ? [{ label: 'Edit', action: () => { navigate(`/vms/${vm.id}/edit`); setOpen(false); } }] : []),
     { label: 'Download RDP', action: () => downloadRDP() },
   ];
 
@@ -66,15 +67,16 @@ function ActionsMenu({ vm }) {
       </button>
       {open && createPortal(
         <div
-          style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 9999 }}
-          className="w-44 bg-slate-800 border border-slate-600 rounded shadow-xl py-1"
+          style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 9999, width: '160px', background: '#12151e', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '6px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', padding: '4px 0' }}
           onMouseDown={e => e.stopPropagation()}
         >
           {menuItems.map(item => (
             <button
               key={item.label}
               onClick={item.action}
-              className="w-full text-left px-4 py-2 font-mono text-sm text-slate-300 hover:bg-slate-700 hover:text-emerald-400"
+              style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontFamily: 'monospace', fontSize: '12px', color: 'rgba(255,255,255,0.6)', background: 'none', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#1d9e75'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
             >
               {item.label}
             </button>
@@ -88,6 +90,7 @@ function ActionsMenu({ vm }) {
 
 export default function VMList() {
   const navigate = useNavigate();
+  const isAdmin = useAuthStore(s => s.user?.role === 'admin');
   const [vms, setVms] = useState([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -99,12 +102,12 @@ export default function VMList() {
     {
       accessorKey: 'vm_name',
       header: 'VM Name',
-      cell: info => <div className="font-mono text-sm">{info.getValue()}</div>,
+      cell: info => <div className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>{info.getValue()}</div>,
     },
     {
       accessorKey: 'ip_address',
       header: 'IP Address',
-      cell: info => <div className="font-mono text-xs text-slate-400">{info.getValue() || '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'environment',
@@ -127,13 +130,13 @@ export default function VMList() {
     {
       accessorKey: 'primary_username',
       header: 'Username',
-      cell: info => <div className="font-mono text-sm text-slate-300">{info.getValue() || '—'}</div>,
+      cell: info => <div className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>{info.getValue() || '—'}</div>,
     },
     {
       id: 'actions',
       header: '',
       enableSorting: false,
-      cell: info => <ActionsMenu vm={info.row.original} />,
+      cell: info => <ActionsMenu vm={info.row.original} isAdmin={isAdmin} />,
     },
   ], []);
 
@@ -175,12 +178,14 @@ export default function VMList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-mono font-bold text-slate-100">Virtual Machines</h1>
-          <p className="text-slate-400 font-mono text-sm mt-1">Total: {total} VMs</p>
+          <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#e8e8e8', margin: 0 }}>Virtual Machines</h1>
+          <p className="font-mono text-sm mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Total: {total} VMs</p>
         </div>
-        <button onClick={() => navigate('/vms/new')} className="btn-primary">
-          + New VM
-        </button>
+        {isAdmin && (
+          <button onClick={() => navigate('/vms/new')} className="btn-primary">
+            + New VM
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -228,16 +233,13 @@ export default function VMList() {
       {isLoading ? (
         <div className="text-slate-400 font-mono">Loading...</div>
       ) : (
-        <div className="card-base border border-slate-700 overflow-x-auto">
+        <div className="card-base overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-800 border-b border-slate-700">
+            <thead>
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map(header => (
-                    <th
-                      key={header.id}
-                      className="px-4 py-3 text-left font-mono font-semibold text-slate-300 text-xs uppercase tracking-wide"
-                    >
+                    <th key={header.id}>
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
@@ -248,11 +250,11 @@ export default function VMList() {
               {table.getRowModel().rows.map(row => (
                 <tr
                   key={row.id}
-                  className="border-b border-slate-700 hover:bg-slate-800/50 transition-colors cursor-pointer"
+                  className="cursor-pointer"
                   onClick={() => navigate(`/vms/${row.original.id}`)}
                 >
                   {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-4 py-3">
+                    <td key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

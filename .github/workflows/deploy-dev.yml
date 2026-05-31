@@ -1,0 +1,42 @@
+name: Deploy to Dev
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy (Dev Runner)
+    runs-on: [self-hosted, Linux, X64, dev]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The .env file is managed on the runner at ~/.vmtrak/backend.env
+      # Run once on the server to set it up:
+      #   mkdir -p ~/.vmtrak && cp /path/to/your/backend/.env ~/.vmtrak/backend.env
+      - name: Restore .env
+        run: cp "$HOME/.vmtrak/backend.env" backend/.env
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Deploy
+        run: docker compose up -d --remove-orphans
+
+      - name: Health check
+        run: |
+          echo "Waiting for backend to be healthy..."
+          for i in $(seq 1 12); do
+            if curl -sf http://localhost:3001/api/health > /dev/null; then
+              echo "Backend healthy."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Health check failed — dumping logs"
+          docker compose logs backend --tail=50
+          exit 1

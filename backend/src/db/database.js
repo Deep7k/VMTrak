@@ -55,8 +55,8 @@ async function seedAdminUser() {
 
   const hash = await bcrypt.hash('changeme', 12);
   db.prepare(`
-    INSERT INTO users (username, email, password_hash, role)
-    VALUES ('admin', 'admin@localhost', ?, 'admin')
+    INSERT INTO users (username, email, password_hash, role, must_change_password)
+    VALUES ('admin', 'admin@localhost', ?, 'admin', 1)
   `).run(hash);
 
   console.log('[db] Seeded default admin user (admin / changeme) — change this password immediately.');

@@ -17,8 +17,8 @@ export default function Login() {
         setIsLoading(true);
 
         try {
-            await login(username, password);
-            navigate('/vms');
+            const data = await login(username, password);
+            navigate(data.user?.must_change_password ? '/setup' : '/vms', { replace: true });
         } catch (err) {
             setError(err.message || 'Login failed. Check your credentials.');
         } finally {

@@ -59,7 +59,7 @@ export default function CredentialPanel({ vmId, credentials }) {
   };
 
   return (
-    <div className="card-base border border-slate-700 p-6">
+    <div className="card-base p-6">
       <h2 className="text-lg font-mono font-bold text-slate-100 mb-4">Credentials</h2>
 
       {credentials.length === 0 ? (
@@ -67,7 +67,7 @@ export default function CredentialPanel({ vmId, credentials }) {
       ) : (
         <div className="space-y-3">
           {credentials.map((cred) => (
-            <div key={cred.id} className="bg-slate-800/50 border border-slate-700 rounded p-4 space-y-2">
+            <div key={cred.id} className="space-y-2" style={{ background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '12px 16px' }}>
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-mono text-sm text-slate-100">{cred.username}</div>
@@ -104,7 +104,7 @@ export default function CredentialPanel({ vmId, credentials }) {
               </div>
 
               {revealed[cred.id] && (
-                <div className="bg-slate-900/50 p-2 rounded border border-slate-600 font-mono text-sm text-slate-100 break-all">
+                <div className="font-mono text-sm break-all" style={{ background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '8px 10px', color: '#e8e8e8' }}>
                   {revealed[cred.id]}
                 </div>
               )}

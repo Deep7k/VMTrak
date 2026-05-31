@@ -8,6 +8,11 @@ const loginSchema = z.object({
   password: z.string().min(1).max(256),
 });
 
+const initialSetupSchema = z.object({
+  email:    z.string().email().max(256),
+  password: z.string().min(8).max(256),
+});
+
 // ── Users ─────────────────────────────────────────────────────────────────────
 const createUserSchema = z.object({
   username: z.string().min(2).max(64).regex(/^[a-zA-Z0-9._-]+$/, 'Invalid username'),
@@ -129,6 +134,7 @@ function validate(schema, input) {
 
 module.exports = {
   loginSchema,
+  initialSetupSchema,
   createUserSchema,
   updateUserSchema,
   resetPasswordSchema,

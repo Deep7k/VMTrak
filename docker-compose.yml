@@ -1,0 +1,43 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vmtrak-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    volumes:
+      - vmtrak-data:/app/data
+      - vmtrak-logs:/app/logs
+    networks:
+      - vmtrak-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vmtrak-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - vmtrak-net
+
+volumes:
+  vmtrak-data:
+  vmtrak-logs:
+
+networks:
+  vmtrak-net:
+    driver: bridge

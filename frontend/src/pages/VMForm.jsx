@@ -43,14 +43,14 @@ function CredentialsSubCard({ vmId }) {
     };
 
     return (
-        <div className="border border-slate-700 rounded p-5 space-y-4 bg-slate-800/30">
+        <div style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '16px 20px' }} className="space-y-4">
             <h2 className="text-sm font-mono font-bold text-slate-300 uppercase">Credentials</h2>
 
             {/* Existing credentials */}
             {credentials.length > 0 && (
                 <div className="space-y-2">
                     {credentials.map(cred => (
-                        <div key={cred.id} className="flex items-center justify-between bg-slate-800 border border-slate-700 rounded px-4 py-3">
+                        <div key={cred.id} className="flex items-center justify-between" style={{ background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: '5px', padding: '8px 14px' }}>
                             <div className="flex items-center gap-3">
                                 <span className="font-mono text-sm text-slate-100">{cred.username}</span>
                                 <span className={`px-2 py-0.5 rounded text-xs font-mono ${cred.account_type === 'primary' ? 'bg-emerald-900/40 text-emerald-300' : 'bg-slate-700 text-slate-400'}`}>
@@ -70,7 +70,7 @@ function CredentialsSubCard({ vmId }) {
             )}
 
             {/* Add new credential */}
-            <div className="grid grid-cols-1 gap-3 pt-2 border-t border-slate-700">
+            <div className="grid grid-cols-1 gap-3 pt-2" style={{ borderTop: '0.5px solid rgba(255,255,255,0.07)' }}>
                 <p className="text-xs font-mono text-slate-500 uppercase">Add Credential</p>
                 <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -211,7 +211,7 @@ export default function VMForm() {
                 <button onClick={() => navigate(isEditing ? `/vms/${id}` : '/vms')} className="text-emerald-400 hover:text-emerald-300 font-mono text-sm mb-2">
                     ← Back
                 </button>
-                <h1 className="text-2xl font-mono font-bold text-slate-100">
+                <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#e8e8e8', margin: 0 }}>
                     {isEditing ? 'Edit VM' : 'Create New VM'}
                 </h1>
             </div>
@@ -222,7 +222,7 @@ export default function VMForm() {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="card-base border border-slate-700 p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="card-base p-6 space-y-6">
                 {/* Identity Section */}
                 <div>
                     <h2 className="text-sm font-mono font-bold text-slate-300 uppercase mb-4">Identity</h2>
@@ -406,7 +406,7 @@ export default function VMForm() {
                 {isEditing && <CredentialsSubCard vmId={id} />}
 
                 {/* Actions */}
-                <div className="flex gap-2 pt-4 border-t border-slate-700">
+                <div className="flex gap-2 pt-4" style={{ borderTop: '0.5px solid rgba(255,255,255,0.07)' }}>
                     <button
                         type="submit"
                         disabled={isSaving}

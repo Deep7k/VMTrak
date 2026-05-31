@@ -1,7 +1,7 @@
 # VMTrak — Roadmap
 
 > Last updated: 2026-05-31
-> Version: v0.1.0 — Phase 1 complete, Phase 2 in progress
+> Version: v0.1.0-alpha — Phase 1 complete, Phase 2 complete, Phase 3 in progress
 
 ---
 
@@ -78,6 +78,15 @@
 - [x] **VM Detail** — full field display, CredentialPanel (reveal/30 s timer/copy)
 - [x] **VM Form** — create and edit mode, all schema fields, number input casting to `Number()` for zod compatibility
   - [x] Credentials sub-card (edit mode only) — list existing, add new (username, type, password with show/hide), delete
+- [x] **Dashboard** — 4 stat cards (VMs, users, audit events, environments), VM list panel, recent activity feed; all data live from API
+- [x] **Users page** — table with role/status badges, create/edit/reset-password/deactivate modals
+- [x] **Audit Log page** — paginated table, filters (user/action/entity/date), expandable detail rows
+
+### Frontend — UI
+- [x] Glass theme applied across all pages — `card-base`, `input-base`, `btn-*` rewritten to `rgba` glass style
+- [x] Tabler Icons webfont installed locally (was CDN-dependent, broken offline)
+- [x] Sidebar — 220px fixed, Tabler icons, active state, compact bottom status zone
+- [x] Topbar — 44px, monospace breadcrumb, ghost logout button
 
 ---
 
@@ -96,31 +105,11 @@
 
 ## Remaining — Phase 2
 
-### Frontend — Stub Pages (backend APIs are fully ready)
-
-- [ ] **Users page** (`/users`) — currently shows "Coming soon"
-  - [ ] Table: username, email, role badge, active status, created date
-  - [ ] Create user modal — username, email, password, role
-  - [ ] Edit user inline or modal — email, role, active toggle
-  - [ ] Reset password action (admin sets new password)
-  - [ ] Deactivate user (soft delete with confirmation)
-
-- [ ] **Audit Log page** (`/audit`) — currently shows "Coming soon"
-  - [ ] Paginated table: timestamp, user, action, entity, IP address, detail
-  - [ ] Filters: date range, action type, entity type, user
-  - [ ] Detail expand — shows changed fields for update actions
-
-- [ ] **Dashboard page** (`/dashboard`) — currently shows "Coming soon"
-  - [ ] VM count by status (active / maintenance / decommissioned)
-  - [ ] VM count by environment (production / staging / dev / test)
-  - [ ] VM count by power state
-  - [ ] Expiring within 30 days list (links to VM detail)
-  - [ ] Expired-but-still-active count with warning badge
-
 ### Frontend — Auth & Access Control
 
-- [ ] **Route guards** — unauthenticated users can currently navigate to any route; redirect to `/login` if `!isAuthenticated`
-- [ ] **Role-based UI** — support users see "New VM" button and Edit option; backend correctly rejects but UI should hide/disable admin-only actions based on `user.role`
+- [x] **Route guards** — `RequireAuth` wraps all protected routes; `RequireAdmin` guards `/users`, `/audit`, `/vms/new`, `/vms/:id/edit`
+- [x] **Role-based UI** — sidebar hides Users/Audit Log for support role; VM List hides "+ New VM" and "Edit" action; VM Detail hides "Edit" button
+- [x] **First-login setup flow** — `must_change_password` flag on users table; seeded admin forced through `/setup` page to set real email + password before accessing app; `RequireSetup` guard prevents revisiting after completion; `auth.setup_completed` audit event logged
 
 ### Backend — Missing Endpoint
 
@@ -130,11 +119,12 @@
 
 ## Remaining — Phase 3 (Deployment)
 
-- [ ] **`backend/Dockerfile`** — `node:20-alpine`, non-root user, healthcheck on `GET /api/health`
-- [ ] **`frontend/Dockerfile`** — two-stage: `node:20-alpine` build → `nginx:alpine` serve
-- [ ] **`frontend/nginx.conf`** — serve static dist, proxy `/api/*` → `http://backend:3001`
-- [ ] **`docker-compose.yml`** at VMTrak root — frontend (port 3000:80) + backend (port 3001) + named volumes for DB and logs
+- [x] **`backend/Dockerfile`** — `node:20-alpine`, non-root user, healthcheck on `GET /api/health`
+- [x] **`frontend/Dockerfile`** — two-stage: `node:20-alpine` build → `nginx:alpine` serve
+- [x] **`frontend/nginx.conf`** — serve static dist, proxy `/api/*` → `http://backend:3001`
+- [x] **`docker-compose.yml`** at VMTrak root — frontend (port 3000:80) + backend (port 3001) + named volumes for DB and logs
 - [ ] **`.env` setup guide** — document one-time secret generation steps for first deploy
+- [x] **`.github/workflows/deploy-dev.yml`** — self-hosted runner (`dev` tag); builds and deploys on push to `dev`
 
 ---
 
