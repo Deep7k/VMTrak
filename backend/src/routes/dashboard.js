@@ -2,7 +2,8 @@
 
 const express  = require('express');
 const { db }   = require('../db/database');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireRole } = require('../middleware/auth');
+const { runExpiryCheck } = require('../services/scheduler');
 
 const router = express.Router();
 
@@ -48,6 +49,14 @@ router.get('/stats', authenticate, (req, res, next) => {
       expiring_soon: expiringSoon,
       expired_count: expiredCount,
     });
+  } catch (err) { next(err); }
+});
+
+// POST /api/dashboard/test-notifications  [admin] — manual trigger for testing SMTP
+router.post('/test-notifications', authenticate, requireRole('admin'), async (req, res, next) => {
+  try {
+    await runExpiryCheck();
+    res.json({ ok: true, message: 'Expiry check complete — check logs for details' });
   } catch (err) { next(err); }
 });
 

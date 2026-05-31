@@ -148,6 +148,7 @@ export default function VMForm() {
         owner: '',
         department: '',
         application: '',
+        expiry_date: '',
         description: '',
         notes: '',
     });
@@ -384,6 +385,33 @@ export default function VMForm() {
                                 className="input-base"
                                 disabled={isSaving}
                             />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Lifecycle */}
+                <div>
+                    <h2 className="text-sm font-mono font-bold text-slate-300 uppercase mb-4">Lifecycle</h2>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block font-mono text-xs text-slate-400 mb-2">
+                                Expiry Date
+                                <span className="text-slate-600 ml-1">(EOL)</span>
+                            </label>
+                            <input
+                                type="date"
+                                name="expiry_date"
+                                value={formData.expiry_date || ''}
+                                onChange={handleChange}
+                                className="input-base"
+                                disabled={isSaving}
+                                style={{ colorScheme: 'dark' }}
+                            />
+                        </div>
+                        <div className="flex items-end pb-1">
+                            <p className="font-mono text-xs text-slate-500">
+                                Notifications sent at 30d, 14d, 7d, 1d and on expiry day to admin and VM owner (if email).
+                            </p>
                         </div>
                     </div>
                 </div>
