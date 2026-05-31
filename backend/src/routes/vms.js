@@ -56,6 +56,36 @@ router.get('/', authenticate, (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── GET /api/vms/export  (CSV) ────────────────────────────────────────────────
+router.get('/export', authenticate, (req, res, next) => {
+  try {
+    const rows = db.prepare("SELECT * FROM vms WHERE status != 'decommissioned'").all();
+
+    const cols = [
+      'vm_name', 'vm_tag', 'description', 'hypervisor', 'cluster', 'datacenter',
+      'os_type', 'os_version', 'hostname', 'ip_address', 'vlan', 'mac_address',
+      'vcpu', 'ram_gb', 'disk_gb', 'power_state', 'environment', 'status',
+      'owner', 'department', 'application', 'expiry_date', 'notes',
+    ];
+
+    const escape = v => {
+      if (v == null) return '';
+      const s = String(v);
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    const csv = [
+      cols.join(','),
+      ...rows.map(r => cols.map(c => escape(r[c])).join(',')),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="vmtrak-export.csv"');
+    res.send(csv);
+  } catch (err) { next(err); }
+});
+
 // ── GET /api/vms/:id ──────────────────────────────────────────────────────────
 router.get('/:id', authenticate, (req, res, next) => {
   try {
@@ -180,36 +210,6 @@ router.get('/:id/rdp', authenticate, (req, res, next) => {
     res.setHeader('Content-Type', 'application/x-rdp');
     res.setHeader('Content-Disposition', `attachment; filename="${vm.vm_name}.rdp"`);
     res.send(content);
-  } catch (err) { next(err); }
-});
-
-// ── GET /api/vms/export  (CSV) ────────────────────────────────────────────────
-router.get('/export', authenticate, (req, res, next) => {
-  try {
-    const rows = db.prepare("SELECT * FROM vms WHERE status != 'decommissioned'").all();
-
-    const cols = [
-      'vm_name', 'vm_tag', 'description', 'hypervisor', 'cluster', 'datacenter',
-      'os_type', 'os_version', 'hostname', 'ip_address', 'vlan', 'mac_address',
-      'vcpu', 'ram_gb', 'disk_gb', 'power_state', 'environment', 'status',
-      'owner', 'department', 'application', 'expiry_date', 'notes',
-    ];
-
-    const escape = v => {
-      if (v == null) return '';
-      const s = String(v);
-      return s.includes(',') || s.includes('"') || s.includes('\n')
-        ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-
-    const csv = [
-      cols.join(','),
-      ...rows.map(r => cols.map(c => escape(r[c])).join(',')),
-    ].join('\n');
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="vmtrak-export.csv"');
-    res.send(csv);
   } catch (err) { next(err); }
 });
 

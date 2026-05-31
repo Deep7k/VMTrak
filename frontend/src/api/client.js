@@ -38,8 +38,8 @@ api.interceptors.response.use(
                     {},
                     { withCredentials: true }
                 );
-                localStorage.setItem('token', data.token);
-                originalRequest.headers.Authorization = `Bearer ${data.token}`;
+                localStorage.setItem('token', data.accessToken);
+                originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
                 return api(originalRequest);
             } catch (refreshError) {
                 localStorage.removeItem('token');
