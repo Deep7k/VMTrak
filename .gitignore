@@ -16,6 +16,10 @@ backend/data/*.db-shm
 backend/data/*.db-wal
 backend/logs/
 
+# Bind-mount directories created by docker compose on the host
+app_data/
+app_logs/
+
 # Claude Code session data
 .claude/
 

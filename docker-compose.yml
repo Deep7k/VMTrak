@@ -9,8 +9,8 @@ services:
     env_file:
       - ./backend/.env
     volumes:
-      - vmtrak-data:/app/data
-      - vmtrak-logs:/app/logs
+      - ./app_data:/app/data
+      - ./app_logs:/app/logs
     networks:
       - vmtrak-net
     healthcheck:
@@ -33,10 +33,6 @@ services:
         condition: service_healthy
     networks:
       - vmtrak-net
-
-volumes:
-  vmtrak-data:
-  vmtrak-logs:
 
 networks:
   vmtrak-net:
