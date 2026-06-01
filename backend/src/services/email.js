@@ -13,6 +13,7 @@ function getTransporter() {
       secure: false,
       auth:   undefined, // IP-authenticated relay, no credentials
       tls:    { rejectUnauthorized: false },
+      name:   process.env.SMTP_HELO || 'itappsdev02.indishtech.lan',
     });
   }
   return _transporter;

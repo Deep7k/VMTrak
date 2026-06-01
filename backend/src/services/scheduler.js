@@ -25,7 +25,9 @@ async function runExpiryCheck() {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   for (const vm of vms) {
-    const expiry    = new Date(vm.expiry_date);
+    // Parse expiry as local midnight to match now (avoids UTC vs local skew on IST servers)
+    const [ey, em, ed] = vm.expiry_date.split('-').map(Number);
+    const expiry    = new Date(ey, em - 1, ed);
     const now       = new Date();
     now.setHours(0, 0, 0, 0);
     const msPerDay  = 86400000;
