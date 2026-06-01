@@ -35,3 +35,6 @@ Thumbs.db
 
 # chatbot
 claude.md
+
+# Local test reports and audit artifacts
+tests/
