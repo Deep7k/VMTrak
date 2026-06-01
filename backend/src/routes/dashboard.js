@@ -8,7 +8,7 @@ const { runExpiryCheck } = require('../services/scheduler');
 const router = express.Router();
 
 // GET /api/dashboard/stats
-router.get('/stats', authenticate, (req, res, next) => {
+router.get('/stats', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const totalVms = db.prepare("SELECT COUNT(*) as n FROM vms").get().n;
 

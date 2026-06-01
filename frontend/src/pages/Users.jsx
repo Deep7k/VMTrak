@@ -24,11 +24,15 @@ function Field({ label, children }) {
   );
 }
 
+const ROLE_LABEL = { admin: 'Admin', readwrite: 'Read/Write', read: 'Read' };
+
 function RoleBadge({ role }) {
   const cls = role === 'admin'
     ? 'bg-amber-900/40 text-amber-300'
-    : 'bg-blue-900/40 text-blue-300';
-  return <span className={`px-2 py-1 rounded text-xs font-mono ${cls}`}>{role}</span>;
+    : role === 'readwrite'
+      ? 'bg-blue-900/40 text-blue-300'
+      : 'bg-slate-700 text-slate-300';
+  return <span className={`px-2 py-1 rounded text-xs font-mono ${cls}`}>{ROLE_LABEL[role] ?? role}</span>;
 }
 
 function ActiveBadge({ active }) {
@@ -38,7 +42,7 @@ function ActiveBadge({ active }) {
 }
 
 function CreateUserModal({ onClose, onCreated }) {
-  const [form, setForm] = useState({ username: '', email: '', password: '', role: 'support' });
+  const [form, setForm] = useState({ username: '', email: '', password: '', role: 'readwrite' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -72,7 +76,8 @@ function CreateUserModal({ onClose, onCreated }) {
         </Field>
         <Field label="Role">
           <select className="input-base" value={form.role} onChange={set('role')}>
-            <option value="support">Support</option>
+            <option value="read">Read</option>
+            <option value="readwrite">Read/Write</option>
             <option value="admin">Admin</option>
           </select>
         </Field>
@@ -116,7 +121,8 @@ function EditUserModal({ user, onClose, onSaved }) {
         <Field label="Role">
           <select className="input-base" value={form.role}
             onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
-            <option value="support">Support</option>
+            <option value="read">Read</option>
+            <option value="readwrite">Read/Write</option>
             <option value="admin">Admin</option>
           </select>
         </Field>

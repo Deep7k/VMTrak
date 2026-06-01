@@ -18,12 +18,12 @@ const createUserSchema = z.object({
   username: z.string().min(2).max(64).regex(/^[a-zA-Z0-9._-]+$/, 'Invalid username'),
   email:    z.string().email().max(256),
   password: z.string().min(8).max(256),
-  role:     z.enum(['admin', 'support']).default('support'),
+  role:     z.enum(['admin', 'readwrite', 'read']).default('readwrite'),
 });
 
 const updateUserSchema = z.object({
   email:     z.string().email().max(256).optional(),
-  role:      z.enum(['admin', 'support']).optional(),
+  role:      z.enum(['admin', 'readwrite', 'read']).optional(),
   is_active: z.boolean().optional(),
 });
 

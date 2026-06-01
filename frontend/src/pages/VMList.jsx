@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { hasMinRole } from '../components/Guards';
 import {
   useReactTable,
   getCoreRowModel,
@@ -131,7 +132,7 @@ function ImportModal({ onClose, onImported }) {
   );
 }
 
-function ActionsMenu({ vm, isAdmin }) {
+function ActionsMenu({ vm, canWrite }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 0 });
@@ -170,8 +171,8 @@ function ActionsMenu({ vm, isAdmin }) {
 
   const menuItems = [
     { label: 'View',         action: () => { navigate(`/vms/${vm.id}`);     setOpen(false); } },
-    ...(isAdmin ? [{ label: 'Edit', action: () => { navigate(`/vms/${vm.id}/edit`); setOpen(false); } }] : []),
-    { label: 'Download RDP', action: () => downloadRDP() },
+    ...(canWrite ? [{ label: 'Edit', action: () => { navigate(`/vms/${vm.id}/edit`); setOpen(false); } }] : []),
+    ...(canWrite ? [{ label: 'Download RDP', action: () => downloadRDP() }] : []),
   ];
 
   return (
@@ -209,7 +210,8 @@ function ActionsMenu({ vm, isAdmin }) {
 
 export default function VMList() {
   const navigate = useNavigate();
-  const isAdmin = useAuthStore(s => s.user?.role === 'admin');
+  const user = useAuthStore(s => s.user);
+  const canWrite = hasMinRole(user, 'readwrite');
   const [vms, setVms] = useState([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -256,7 +258,7 @@ export default function VMList() {
       id: 'actions',
       header: '',
       enableSorting: false,
-      cell: info => <ActionsMenu vm={info.row.original} isAdmin={isAdmin} />,
+      cell: info => <ActionsMenu vm={info.row.original} canWrite={canWrite} />,
     },
   ], []);
 
@@ -301,7 +303,7 @@ export default function VMList() {
           <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#e8e8e8', margin: 0 }}>Virtual Machines</h1>
           <p className="font-mono text-sm mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Total: {total} VMs</p>
         </div>
-        {isAdmin && (
+        {canWrite && (
           <div className="flex gap-2">
             <button onClick={() => setShowImport(true)} className="btn-secondary">
               ↑ Import CSV

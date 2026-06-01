@@ -1,18 +1,18 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { hasMinRole } from './Guards';
 
 const NAV = [
-    { label: 'Dashboard', icon: 'ti-layout-dashboard', path: '/dashboard', adminOnly: false },
-    { label: 'VMs',       icon: 'ti-server',           path: '/vms',       adminOnly: false },
-    { label: 'Users',     icon: 'ti-users',            path: '/users',     adminOnly: true },
-    { label: 'Audit Log', icon: 'ti-list-details',     path: '/audit',     adminOnly: true },
+    { label: 'Dashboard', icon: 'ti-layout-dashboard', path: '/dashboard', minRole: 'readwrite' },
+    { label: 'VMs',       icon: 'ti-server',           path: '/vms',       minRole: 'read' },
+    { label: 'Users',     icon: 'ti-users',            path: '/users',     minRole: 'admin' },
+    { label: 'Audit Log', icon: 'ti-list-details',     path: '/audit',     minRole: 'admin' },
 ];
 
 export default function Sidebar() {
     const { pathname } = useLocation();
     const user = useAuthStore(s => s.user);
-    const isAdmin = user?.role === 'admin';
-    const visibleNav = NAV.filter(item => !item.adminOnly || isAdmin);
+    const visibleNav = NAV.filter(item => hasMinRole(user, item.minRole));
 
     const isActive = (path) =>
         path === '/vms'

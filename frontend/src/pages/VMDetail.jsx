@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import CredentialPanel from '../components/CredentialPanel';
 import { useAuthStore } from '../store/authStore';
+import { hasMinRole } from '../components/Guards';
 
 export default function VMDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const isAdmin = useAuthStore(s => s.user?.role === 'admin');
+    const user = useAuthStore(s => s.user);
+    const canWrite = hasMinRole(user, 'readwrite');
     const [vm, setVm] = useState(null);
     const [credentials, setCredentials] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -23,8 +25,10 @@ export default function VMDetail() {
             const vmRes = await api.get(`/vms/${id}`);
             setVm(vmRes.data);
 
-            const credsRes = await api.get(`/vms/${id}/credentials`);
-            setCredentials(credsRes.data);
+            if (canWrite) {
+                const credsRes = await api.get(`/vms/${id}/credentials`);
+                setCredentials(credsRes.data);
+            }
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to load VM');
         } finally {
@@ -69,10 +73,12 @@ export default function VMDetail() {
                     <p className="font-mono text-sm mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{vm.ip_address}</p>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={downloadRDP} className="btn-primary">
-                        Download RDP
-                    </button>
-                    {isAdmin && (
+                    {canWrite && (
+                        <button onClick={downloadRDP} className="btn-primary">
+                            Download RDP
+                        </button>
+                    )}
+                    {canWrite && (
                         <button onClick={() => navigate(`/vms/${id}/edit`)} className="btn-secondary">
                             Edit
                         </button>
@@ -131,8 +137,8 @@ export default function VMDetail() {
                 )}
             </div>
 
-            {/* Credentials */}
-            <CredentialPanel vmId={id} credentials={credentials} />
+            {/* Credentials — hidden for read-only role */}
+            {canWrite && <CredentialPanel vmId={id} credentials={credentials} />}
         </div>
     );
 }

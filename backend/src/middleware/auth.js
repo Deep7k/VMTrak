@@ -30,16 +30,22 @@ function authenticate(req, res, next) {
   }
 }
 
+// Role hierarchy: admin > readwrite > read
+const ROLE_LEVEL = { read: 1, readwrite: 2, admin: 3 };
+
 /**
  * Role guard — call after authenticate().
- * requireRole('admin') restricts to admins only.
+ * requireRole('readwrite') allows readwrite AND admin.
+ * requireRole('admin') allows admin only.
  */
-function requireRole(...roles) {
+function requireRole(minRole) {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
-    if (!roles.includes(req.user.role)) {
+    const userLevel = ROLE_LEVEL[req.user.role] || 0;
+    const minLevel  = ROLE_LEVEL[minRole] || 0;
+    if (userLevel < minLevel) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
     next();

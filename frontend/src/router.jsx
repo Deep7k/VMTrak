@@ -8,7 +8,7 @@ import VMForm       from './pages/VMForm';
 import UsersPage    from './pages/Users';
 import AuditPage    from './pages/Audit';
 import DashboardPage from './pages/Dashboard';
-import { RequireAuth, RequireAdmin, RequireSetup } from './components/Guards';
+import { RequireAuth, RequireAdmin, RequireReadWrite, RequireSetup } from './components/Guards';
 
 export const router = createBrowserRouter([
   {
@@ -24,11 +24,11 @@ export const router = createBrowserRouter([
     element: <RequireAuth><AppShell /></RequireAuth>,
     children: [
       { index: true,           element: <VMList /> },
-      { path: '/dashboard',    element: <DashboardPage /> },
+      { path: '/dashboard',    element: <RequireReadWrite><DashboardPage /></RequireReadWrite> },
       { path: '/vms',          element: <VMList /> },
-      { path: '/vms/new',      element: <RequireAdmin><VMForm /></RequireAdmin> },
+      { path: '/vms/new',      element: <RequireReadWrite><VMForm /></RequireReadWrite> },
       { path: '/vms/:id',      element: <VMDetail /> },
-      { path: '/vms/:id/edit', element: <RequireAdmin><VMForm /></RequireAdmin> },
+      { path: '/vms/:id/edit', element: <RequireReadWrite><VMForm /></RequireReadWrite> },
       { path: '/users',        element: <RequireAdmin><UsersPage /></RequireAdmin> },
       { path: '/audit',        element: <RequireAdmin><AuditPage /></RequireAdmin> },
     ],

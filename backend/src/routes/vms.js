@@ -17,7 +17,7 @@ const SORTABLE = new Set([
 ]);
 
 // ── GET /api/vms ──────────────────────────────────────────────────────────────
-router.get('/', authenticate, (req, res, next) => {
+router.get('/', authenticate, requireRole('read'), (req, res, next) => {
   try {
     const q = validate(vmQuerySchema, req.query);
 
@@ -58,7 +58,7 @@ router.get('/', authenticate, (req, res, next) => {
 });
 
 // ── GET /api/vms/export  (CSV) ────────────────────────────────────────────────
-router.get('/export', authenticate, (req, res, next) => {
+router.get('/export', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const rows = db.prepare("SELECT * FROM vms WHERE status != 'decommissioned'").all();
 
@@ -93,7 +93,7 @@ router.get('/export', authenticate, (req, res, next) => {
 router.post(
   '/import',
   authenticate,
-  requireRole('admin'),
+  requireRole('readwrite'),
   express.text({ type: ['text/csv', 'text/plain', 'application/octet-stream'] }),
   (req, res, next) => {
     try {
@@ -195,7 +195,7 @@ router.post(
 );
 
 // ── GET /api/vms/:id ──────────────────────────────────────────────────────────
-router.get('/:id', authenticate, (req, res, next) => {
+router.get('/:id', authenticate, requireRole('read'), (req, res, next) => {
   try {
     const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
@@ -205,7 +205,7 @@ router.get('/:id', authenticate, (req, res, next) => {
 });
 
 // ── POST /api/vms  [admin] ────────────────────────────────────────────────────
-router.post('/', authenticate, requireRole('admin'), (req, res, next) => {
+router.post('/', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const data = validate(vmSchema, req.body);
     const now = new Date().toISOString();
@@ -267,7 +267,7 @@ router.post('/', authenticate, requireRole('admin'), (req, res, next) => {
 });
 
 // ── PUT /api/vms/:id  [admin] ─────────────────────────────────────────────────
-router.put('/:id', authenticate, requireRole('admin'), (req, res, next) => {
+router.put('/:id', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const existing = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'VM not found' });
@@ -292,7 +292,7 @@ router.put('/:id', authenticate, requireRole('admin'), (req, res, next) => {
 });
 
 // ── DELETE /api/vms/:id  [admin] ──────────────────────────────────────────────
-router.delete('/:id', authenticate, requireRole('admin'), (req, res, next) => {
+router.delete('/:id', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
@@ -304,7 +304,7 @@ router.delete('/:id', authenticate, requireRole('admin'), (req, res, next) => {
 });
 
 // ── GET /api/vms/:id/rdp ──────────────────────────────────────────────────────
-router.get('/:id/rdp', authenticate, (req, res, next) => {
+router.get('/:id/rdp', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
