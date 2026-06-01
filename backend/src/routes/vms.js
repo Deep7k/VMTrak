@@ -71,7 +71,9 @@ router.get('/export', authenticate, (req, res, next) => {
 
     const escape = v => {
       if (v == null) return '';
-      const s = String(v);
+      let s = String(v);
+      // Neutralise CSV formula injection (Excel/LibreOffice interpret leading =+-@)
+      if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
       return s.includes(',') || s.includes('"') || s.includes('\n')
         ? `"${s.replace(/"/g, '""')}"` : s;
     };

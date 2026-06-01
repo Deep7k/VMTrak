@@ -1,15 +1,24 @@
 'use strict';
 
-const express   = require('express');
-const bcrypt    = require('bcryptjs');
-const jwt       = require('jsonwebtoken');
-const crypto    = require('crypto');
-const { db }    = require('../db/database');
+const express    = require('express');
+const bcrypt     = require('bcryptjs');
+const jwt        = require('jsonwebtoken');
+const crypto     = require('crypto');
+const rateLimit  = require('express-rate-limit');
+const { db }     = require('../db/database');
 const { authenticate } = require('../middleware/auth');
 const { writeAudit, getIp } = require('../middleware/audit');
 const { loginSchema, initialSetupSchema, validate } = require('../utils/validators');
 
 const router = express.Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts — try again in 15 minutes' },
+});
 
 const ACCESS_EXPIRY  = process.env.ACCESS_TOKEN_EXPIRY  || '15m';
 const REFRESH_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
@@ -36,7 +45,7 @@ function issueRefreshToken(userId) {
 }
 
 // POST /api/auth/login
-router.post('/login', (req, res, next) => {
+router.post('/login', loginLimiter, (req, res, next) => {
   try {
     const { username, password } = validate(loginSchema, req.body);
     const user = db.prepare(
