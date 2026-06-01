@@ -14,10 +14,11 @@ const router = express.Router();
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  max: 20,
+  skipSuccessfulRequests: true, // only failed attempts count toward the limit
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many login attempts — try again in 15 minutes' },
+  message: { error: 'Too many failed login attempts — try again in 15 minutes' },
 });
 
 const ACCESS_EXPIRY  = process.env.ACCESS_TOKEN_EXPIRY  || '15m';
