@@ -42,7 +42,15 @@ function runMigrations() {
     if (applied.includes(file)) continue;
 
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-    db.exec(sql);
+    try {
+      db.exec(sql);
+    } catch (err) {
+      // Tolerate "duplicate column" errors so a migration that partially ran
+      // on a previous deploy (column added but _migrations not recorded) doesn't
+      // prevent startup. Any other error is still fatal.
+      if (!err.message?.includes('duplicate column name')) throw err;
+      console.warn(`[db] Migration ${file}: skipped (column already exists)`);
+    }
     db.prepare('INSERT INTO _migrations (name) VALUES (?)').run(file);
     console.log(`[db] Applied migration: ${file}`);
   }
