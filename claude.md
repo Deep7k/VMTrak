@@ -53,3 +53,8 @@ After any migration that uses `PRAGMA foreign_keys = OFF`, `initDb()` re-enables
 - Store secrets anywhere other than .env
 - Add a standalone Credentials page/route — credentials live in the Edit VM view
 - Add React Query or React Hook Form — keep it plain axios + useState
+- Run `docker compose up`, `docker compose down`, `docker compose restart`, or any other docker compose command that starts/stops containers — deployment is handled by the GitHub Actions self-hosted runner on itappsdev02; running these locally creates containers on the wrong host (itappsdev01)
+- Start dev servers (`npm run dev`) or attempt browser-based verification locally — DNS and SSL point to itappsdev02 so local testing is meaningless; just write the code, commit, and push to `dev` and let the pipeline deploy it
+
+## Testing / verification
+After pushing to `dev` and waiting for the pipeline to deploy, test via curl against the live dev instance at `https://vmtrak-dev.internal.indishtech.in/`. Credentials are in `.claude/test-creds.md` (local only, gitignored).

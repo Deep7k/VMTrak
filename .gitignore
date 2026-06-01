@@ -32,3 +32,6 @@ app_logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# chatbot
+claude.md

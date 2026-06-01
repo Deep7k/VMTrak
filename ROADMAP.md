@@ -113,7 +113,7 @@
 
 ### Backend — Missing Endpoint
 
-- [ ] **`POST /api/vms/import`** — CSV bulk import (admin only); validate headers, insert rows, return summary `{ imported, skipped, errors }`
+- [x] **`POST /api/vms/import`** — CSV bulk import (admin only); validate headers, insert rows, return summary `{ imported, skipped, errors }`
 
 ---
 
@@ -123,7 +123,7 @@
 - [x] **`frontend/Dockerfile`** — two-stage: `node:20-alpine` build → `nginx:alpine` serve
 - [x] **`frontend/nginx.conf`** — serve static dist, proxy `/api/*` → `http://backend:3001`
 - [x] **`docker-compose.yml`** at VMTrak root — frontend (port 3000:80) + backend (port 3001) + named volumes for DB and logs
-- [ ] **`.env` setup guide** — document one-time secret generation steps for first deploy
+- [x] **`.env` setup guide** — `backend/.env.example` documents all vars with generation commands; `BACKEND_ENV` GitHub secret holds the full `.env` content for CI deploy
 - [x] **`.github/workflows/deploy-dev.yml`** — self-hosted runner (`dev` tag); builds and deploys on push to `dev`
 
 ---
