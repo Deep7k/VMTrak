@@ -22,9 +22,10 @@ const createUserSchema = z.object({
 });
 
 const updateUserSchema = z.object({
-  email:     z.string().email().max(256).optional(),
-  role:      z.enum(['admin', 'readwrite', 'read']).optional(),
-  is_active: z.boolean().optional(),
+  email:         z.string().email().max(256).optional(),
+  role:          z.enum(['admin', 'readwrite', 'read']).optional(),
+  is_active:     z.boolean().optional(),
+  notify_expiry: z.boolean().optional(),
 });
 
 const resetPasswordSchema = z.object({

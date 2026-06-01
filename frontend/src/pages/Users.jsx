@@ -41,8 +41,55 @@ function ActiveBadge({ active }) {
     : <span className="px-2 py-1 rounded text-xs font-mono bg-slate-700 text-slate-400">inactive</span>;
 }
 
+function NotifyToggle({ userId, enabled, onChange }) {
+  const [busy, setBusy] = useState(false);
+
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      await api.put(`/users/${userId}`, { notify_expiry: !enabled });
+      onChange();
+    } catch {
+      // silently fail — parent will reload
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={toggle}
+      disabled={busy}
+      title={enabled ? 'Notifications on — click to disable' : 'Notifications off — click to enable'}
+      style={{
+        position: 'relative',
+        width: '36px',
+        height: '20px',
+        borderRadius: '10px',
+        border: 'none',
+        cursor: busy ? 'wait' : 'pointer',
+        background: enabled ? '#1d9e75' : 'rgba(255,255,255,0.12)',
+        transition: 'background 0.2s',
+        flexShrink: 0,
+        padding: 0,
+      }}
+    >
+      <span style={{
+        position: 'absolute',
+        top: '3px',
+        left: enabled ? '19px' : '3px',
+        width: '14px',
+        height: '14px',
+        borderRadius: '50%',
+        background: '#fff',
+        transition: 'left 0.2s',
+      }} />
+    </button>
+  );
+}
+
 function CreateUserModal({ onClose, onCreated }) {
-  const [form, setForm] = useState({ username: '', email: '', password: '', role: 'readwrite' });
+  const [form, setForm] = useState({ username: '', email: '', password: '', role: 'readwrite', notify_expiry: false });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -81,6 +128,14 @@ function CreateUserModal({ onClose, onCreated }) {
             <option value="admin">Admin</option>
           </select>
         </Field>
+        <Field label="Expiry Notifications">
+          <label className="flex items-center gap-2 cursor-pointer mt-1">
+            <input type="checkbox" checked={form.notify_expiry}
+              onChange={e => setForm(f => ({ ...f, notify_expiry: e.target.checked }))}
+              className="w-4 h-4 accent-emerald-500" />
+            <span className="font-mono text-sm text-slate-300">Send VM expiry alerts to this user</span>
+          </label>
+        </Field>
         {error && <p className="text-red-400 font-mono text-sm">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
@@ -94,7 +149,12 @@ function CreateUserModal({ onClose, onCreated }) {
 }
 
 function EditUserModal({ user, onClose, onSaved }) {
-  const [form, setForm] = useState({ email: user.email, role: user.role, is_active: !!user.is_active });
+  const [form, setForm] = useState({
+    email:         user.email,
+    role:          user.role,
+    is_active:     !!user.is_active,
+    notify_expiry: !!user.notify_expiry,
+  });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -132,6 +192,14 @@ function EditUserModal({ user, onClose, onSaved }) {
               onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))}
               className="w-4 h-4 accent-emerald-500" />
             <span className="font-mono text-sm text-slate-300">User is active</span>
+          </label>
+        </Field>
+        <Field label="Expiry Notifications">
+          <label className="flex items-center gap-2 cursor-pointer mt-1">
+            <input type="checkbox" checked={form.notify_expiry}
+              onChange={e => setForm(f => ({ ...f, notify_expiry: e.target.checked }))}
+              className="w-4 h-4 accent-emerald-500" />
+            <span className="font-mono text-sm text-slate-300">Send VM expiry alerts to this user</span>
           </label>
         </Field>
         {error && <p className="text-red-400 font-mono text-sm">{error}</p>}
@@ -271,7 +339,7 @@ export default function UsersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Username', 'Email', 'Role', 'Status', 'Created', 'Actions'].map(h => (
+                {['Username', 'Email', 'Role', 'Status', 'Notifications', 'Created', 'Actions'].map(h => (
                   <th key={h}>{h}</th>
                 ))}
               </tr>
@@ -283,6 +351,14 @@ export default function UsersPage() {
                   <td className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>{u.email}</td>
                   <td><RoleBadge role={u.role} /></td>
                   <td><ActiveBadge active={u.is_active} /></td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <NotifyToggle userId={u.id} enabled={!!u.notify_expiry} onChange={loadUsers} />
+                      <span className="font-mono text-xs" style={{ color: u.notify_expiry ? '#1d9e75' : 'rgba(255,255,255,0.25)' }}>
+                        {u.notify_expiry ? 'on' : 'off'}
+                      </span>
+                    </div>
+                  </td>
                   <td className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{u.created_at?.slice(0, 10)}</td>
                   <td>
                     <div className="flex gap-2 flex-wrap">

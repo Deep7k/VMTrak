@@ -45,11 +45,22 @@ async function runExpiryCheck() {
       if (alreadySent) continue;
 
       try {
-        await sendExpiryNotification(vm, type);
+        // Build recipient list from users with notify_expiry enabled + VM owner
+        const notifyUsers = db.prepare(
+          "SELECT email FROM users WHERE notify_expiry = 1 AND is_active = 1"
+        ).all().map(u => u.email);
 
-        const recipients = [];
-        if (process.env.NOTIFY_ADMIN_EMAIL) recipients.push(process.env.NOTIFY_ADMIN_EMAIL);
-        if (vm.owner?.includes('@'))        recipients.push(vm.owner);
+        const recipients = [...new Set([
+          ...notifyUsers,
+          ...(vm.owner?.includes('@') ? [vm.owner] : []),
+        ])];
+
+        if (recipients.length === 0) {
+          logger.warn('scheduler: no notification recipients configured for VM', { vm_id: vm.id });
+          continue;
+        }
+
+        await sendExpiryNotification(vm, type, recipients);
 
         for (const recipient of recipients) {
           db.prepare(`

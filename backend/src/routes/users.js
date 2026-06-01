@@ -12,7 +12,7 @@ const router = express.Router();
 // All user management routes require admin
 router.use(authenticate, requireRole('admin'));
 
-const PUBLIC_FIELDS = 'id, username, email, role, is_active, created_at, updated_at';
+const PUBLIC_FIELDS = 'id, username, email, role, is_active, notify_expiry, created_at, updated_at';
 
 // ── GET /api/users ────────────────────────────────────────────────────────────
 router.get('/', (req, res, next) => {
@@ -66,9 +66,10 @@ router.put('/:id', (req, res, next) => {
     }
 
     const updates = {};
-    if (data.email     !== undefined) updates.email     = data.email;
-    if (data.role      !== undefined) updates.role      = data.role;
-    if (data.is_active !== undefined) updates.is_active = data.is_active ? 1 : 0;
+    if (data.email         !== undefined) updates.email         = data.email;
+    if (data.role          !== undefined) updates.role          = data.role;
+    if (data.is_active     !== undefined) updates.is_active     = data.is_active ? 1 : 0;
+    if (data.notify_expiry !== undefined) updates.notify_expiry = data.notify_expiry ? 1 : 0;
     updates.updated_at = new Date().toISOString();
 
     const fields = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');
