@@ -31,33 +31,27 @@ export default function Sidebar() {
         }}>
             {/* Logo zone */}
             <div style={{
-                height: '52px',
+                padding: '22px 14px 18px',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                padding: '0 14px',
-                gap: '10px',
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
                 flexShrink: 0,
             }}>
-                <div style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '6px',
-                    background: '#1d9e75',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: 'monospace',
-                    fontWeight: 700,
-                    fontSize: '15px',
-                    color: '#fff',
-                    flexShrink: 0,
-                }}>V</div>
-                <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 600, color: '#e8e8e8' }}>
+                {/* App icon */}
+                <svg width="44" height="44" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '10px' }}>
+                    <rect width="40" height="40" rx="9" fill="#1d9e75"/>
+                    <rect x="7" y="9"  width="26" height="6" rx="2" fill="white" opacity="0.95"/>
+                    <rect x="7" y="18" width="26" height="6" rx="2" fill="white" opacity="0.6"/>
+                    <rect x="7" y="27" width="26" height="6" rx="2" fill="white" opacity="0.28"/>
+                    <circle cx="12"   cy="12" r="1.6" fill="#bbf7d0"/>
+                    <circle cx="16.5" cy="12" r="1.6" fill="#bbf7d0" opacity="0.45"/>
+                </svg>
+                <span style={{ fontFamily: 'monospace', fontSize: '15px', fontWeight: 700, color: '#e8e8e8', letterSpacing: '0.04em' }}>
                     VMTrak
                 </span>
-                <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginLeft: '2px' }}>
-                    v0.1
+                <span style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgba(255,255,255,0.28)', marginTop: '3px', letterSpacing: '0.03em' }}>
+                    Infrastructure Management
                 </span>
             </div>
 
