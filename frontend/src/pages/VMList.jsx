@@ -239,6 +239,8 @@ export default function VMList() {
   const [showImport, setShowImport] = useState(false);
   const [reachability, setReachability] = useState({});
   const [reachChecking, setReachChecking] = useState(false);
+  const [hypervisor, setHypervisor] = useState('');
+  const [hypervisors, setHypervisors] = useState([]);
 
   const fetchReachability = useCallback(async (vmList) => {
     if (!vmList.length) return;
@@ -320,8 +322,12 @@ export default function VMList() {
   ], [reachability, reachChecking, canWrite, vms, fetchReachability]);
 
   useEffect(() => {
+    api.get('/vms/hypervisors').then(r => setHypervisors(r.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     loadVMs();
-  }, [search, environment, status]);
+  }, [search, environment, status, hypervisor]);
 
   const loadVMs = async () => {
     setIsLoading(true);
@@ -332,6 +338,7 @@ export default function VMList() {
         ...(search && { search }),
         ...(environment && { environment }),
         ...(status && { status }),
+        ...(hypervisor && { hypervisor }),
       });
       const { data } = await api.get(`/vms?${params}`);
       setVms(data.data);
@@ -374,7 +381,7 @@ export default function VMList() {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div>
           <label className="block font-mono text-xs text-slate-400 mb-2">Search</label>
           <input
@@ -404,9 +411,18 @@ export default function VMList() {
             <option value="decommissioned">Decommissioned</option>
           </select>
         </div>
+        <div>
+          <label className="block font-mono text-xs text-slate-400 mb-2">Hypervisor</label>
+          <select value={hypervisor} onChange={(e) => setHypervisor(e.target.value)} className="input-base">
+            <option value="">All</option>
+            {hypervisors.map(h => (
+              <option key={h} value={h}>{h}</option>
+            ))}
+          </select>
+        </div>
         <div className="flex items-end">
           <button
-            onClick={() => { setSearch(''); setEnvironment(''); setStatus('active'); }}
+            onClick={() => { setSearch(''); setEnvironment(''); setStatus('active'); setHypervisor(''); }}
             className="btn-secondary w-full"
           >
             Reset

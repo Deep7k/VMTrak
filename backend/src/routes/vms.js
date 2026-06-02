@@ -31,9 +31,10 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
       params.push(s, s, s, s);
     }
     if (q.environment) { where.push('environment = ?'); params.push(q.environment); }
-    if (q.status) { where.push('status = ?'); params.push(q.status); }
+    if (q.status)      { where.push('status = ?');      params.push(q.status); }
     if (q.power_state) { where.push('power_state = ?'); params.push(q.power_state); }
-    if (q.department) { where.push('department = ?'); params.push(q.department); }
+    if (q.department)  { where.push('department = ?');  params.push(q.department); }
+    if (q.hypervisor)  { where.push('hypervisor = ?');  params.push(q.hypervisor); }
     if (q.expiring_in != null) {
       where.push("expiry_date IS NOT NULL AND expiry_date <= date('now', ? || ' days')");
       params.push(`+${q.expiring_in}`);
@@ -87,6 +88,16 @@ router.get('/export', authenticate, requireRole('readwrite'), (req, res, next) =
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="vmtrak-export.csv"');
     res.send(csv);
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/vms/hypervisors ──────────────────────────────────────────────────
+router.get('/hypervisors', authenticate, requireRole('read'), (req, res, next) => {
+  try {
+    const rows = db.prepare(
+      "SELECT DISTINCT hypervisor FROM vms WHERE hypervisor IS NOT NULL AND hypervisor != '' ORDER BY hypervisor"
+    ).all();
+    res.json(rows.map(r => r.hypervisor));
   } catch (err) { next(err); }
 });
 

@@ -111,6 +111,7 @@ const vmQuerySchema = z.object({
   status:      z.enum(['active', 'decommissioned', 'maintenance']).optional(),
   power_state: z.enum(['on', 'off', 'suspended', 'unknown']).optional(),
   department:  z.string().optional(),
+  hypervisor:  z.string().optional(),
   expiring_in: z.coerce.number().int().min(0).optional(),
   page:        z.coerce.number().int().min(1).default(1),
   limit:       z.coerce.number().int().min(1).max(200).default(50),
