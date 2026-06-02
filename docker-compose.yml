@@ -8,8 +8,6 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env
-    environment:
-      - TZ=Asia/Kolkata
     volumes:
       - vm-data:/app/data
       - vm-logs:/app/logs
