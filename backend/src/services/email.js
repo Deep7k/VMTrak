@@ -32,16 +32,12 @@ async function sendMail(to, subject, html) {
 }
 
 const SEVERITY = {
-  '30d':     { label: 'Expiry Warning',  accent: '#2563eb' },
-  '14d':     { label: 'Expiry Warning',  accent: '#2563eb' },
   '7d':      { label: 'Expiry Warning',  accent: '#d97706' },
   '1d':      { label: 'Expiry Tomorrow', accent: '#dc2626' },
   'expired': { label: 'VM Expired',      accent: '#dc2626' },
 };
 
 const VERB = {
-  '30d':     'expires in <b>30 days</b>',
-  '14d':     'expires in <b>14 days</b>',
   '7d':      'expires in <b>7 days</b>',
   '1d':      'expires <b>tomorrow</b>',
   'expired': 'expired today',
@@ -53,7 +49,7 @@ const VERB = {
  * @param {string[]} recipients  – list of email addresses
  */
 async function sendExpiryNotification(vm, noticeType, recipients) {
-  const sev    = SEVERITY[noticeType] || SEVERITY['7d'];
+  const sev    = SEVERITY[noticeType] || SEVERITY['expired'];
   const verb   = VERB[noticeType]     || 'is expiring';
   const appUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const subject = `[VMTrak] ${sev.label} — ${vm.vm_name}`;

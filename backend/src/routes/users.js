@@ -58,7 +58,7 @@ router.put('/:id', (req, res, next) => {
 
     // Prevent demoting the last active admin
     const data = validate(updateUserSchema, req.body);
-    if (data.role === 'support' || data.is_active === false) {
+    if (data.role !== 'admin' || data.is_active === false) {
       const adminCount = db.prepare("SELECT COUNT(*) as n FROM users WHERE role = 'admin' AND is_active = 1").get().n;
       if (adminCount <= 1 && existing.role === 'admin') {
         return res.status(400).json({ error: 'Cannot demote or deactivate the last admin' });

@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { useAuth } from '../hooks/useAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 

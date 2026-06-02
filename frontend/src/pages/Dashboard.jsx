@@ -108,8 +108,9 @@ export default function Dashboard() {
 
     /* derived */
     const activeUsers  = users.filter(u => u.is_active);
-    const adminCount   = activeUsers.filter(u => u.role === 'admin').length;
-    const supportCount = activeUsers.filter(u => u.role === 'support').length;
+    const adminCount     = activeUsers.filter(u => u.role === 'admin').length;
+    const readwriteCount = activeUsers.filter(u => u.role === 'readwrite').length;
+    const readCount      = activeUsers.filter(u => u.role === 'read').length;
 
     const envKeys      = stats ? Object.keys(stats.by_environment) : [];
     const envCount     = envKeys.length;
@@ -148,7 +149,7 @@ export default function Dashboard() {
                     label="Active users"
                     value={activeUsers.length}
                     dot="#378ADD"
-                    sub={`${adminCount} admin · ${supportCount} support`}
+                    sub={`${adminCount} admin · ${readwriteCount} read/write · ${readCount} read`}
                 />
                 <StatCard
                     label="Audit events"
