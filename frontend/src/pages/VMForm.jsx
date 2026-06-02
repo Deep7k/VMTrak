@@ -198,12 +198,18 @@ export default function VMForm() {
         setError('');
         setIsSaving(true);
 
+        // Sanitize: convert any remaining empty strings to null so optional
+        // fields (expiry_date regex, os_type enum, etc.) don't fail zod validation
+        const payload = Object.fromEntries(
+            Object.entries(formData).map(([k, v]) => [k, v === '' ? null : v])
+        );
+
         try {
             if (isEditing) {
-                await api.put(`/vms/${id}`, formData);
+                await api.put(`/vms/${id}`, payload);
                 navigate(`/vms/${id}`);
             } else {
-                const { data } = await api.post('/vms', formData);
+                const { data } = await api.post('/vms', payload);
                 navigate(`/vms/${data.id}`);
             }
         } catch (err) {
