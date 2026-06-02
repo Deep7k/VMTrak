@@ -7,11 +7,9 @@ const { writeAudit } = require('../middleware/audit');
 const logger  = require('../utils/logger');
 
 const THRESHOLDS = [
-  { days: 30, type: '30d'     },
-  { days: 14, type: '14d'     },
-  { days:  7, type: '7d'      },
-  { days:  1, type: '1d'      },
-  { days:  0, type: 'expired' },
+  { days: 7, type: '7d'      },
+  { days: 1, type: '1d'      },
+  { days: 0, type: 'expired' },
 ];
 
 async function runExpiryCheck() {

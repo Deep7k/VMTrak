@@ -141,6 +141,9 @@ export default function VMForm() {
         ip_address: '',
         os_type: '',
         os_version: '',
+        hypervisor: '',
+        cluster: '',
+        datacenter: '',
         vcpu: '',
         ram_gb: '',
         disk_gb: '',
@@ -152,6 +155,7 @@ export default function VMForm() {
         description: '',
         notes: '',
     });
+    const [hasExpiry, setHasExpiry] = useState(false);
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -168,11 +172,17 @@ export default function VMForm() {
         try {
             const { data } = await api.get(`/vms/${id}`);
             setFormData(data);
+            setHasExpiry(!!data.expiry_date);
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to load VM');
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const toggleExpiry = (checked) => {
+        setHasExpiry(checked);
+        if (!checked) setFormData(prev => ({ ...prev, expiry_date: null }));
     };
 
     const handleChange = (e) => {
@@ -270,6 +280,16 @@ export default function VMForm() {
                                 disabled={isSaving}
                             />
                         </div>
+                    </div>
+                </div>
+
+                {/* Infrastructure Section */}
+                <div>
+                    <h2 className="text-sm font-mono font-bold text-slate-300 uppercase mb-4">Infrastructure</h2>
+                    <div>
+                        <label className="block font-mono text-xs text-slate-400 mb-2">Hypervisor</label>
+                        <input type="text" name="hypervisor" value={formData.hypervisor || ''} onChange={handleChange}
+                            className="input-base" placeholder="e.g. esxi01.indishtech.lan" disabled={isSaving} />
                     </div>
                 </div>
 
@@ -392,26 +412,32 @@ export default function VMForm() {
                 {/* Lifecycle */}
                 <div>
                     <h2 className="text-sm font-mono font-bold text-slate-300 uppercase mb-4">Lifecycle</h2>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block font-mono text-xs text-slate-400 mb-2">
-                                Expiry Date
-                                <span className="text-slate-600 ml-1">(EOL)</span>
-                            </label>
-                            <input
-                                type="date"
-                                name="expiry_date"
-                                value={formData.expiry_date || ''}
-                                onChange={handleChange}
-                                className="input-base"
-                                disabled={isSaving}
-                                style={{ colorScheme: 'dark' }}
-                            />
-                        </div>
-                        <div className="flex items-end pb-1">
-                            <p className="font-mono text-xs text-slate-500">
-                                Notifications sent at 30d, 14d, 7d, 1d and on expiry day to admin and VM owner (if email).
-                            </p>
+                    <div className="space-y-3">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={hasExpiry} onChange={e => toggleExpiry(e.target.checked)}
+                                className="w-4 h-4 accent-emerald-500" disabled={isSaving} />
+                            <span className="font-mono text-sm text-slate-300">This VM has an expiry / end-of-life date</span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block font-mono text-xs mb-2" style={{ color: hasExpiry ? 'rgba(148,163,184,1)' : 'rgba(148,163,184,0.35)' }}>
+                                    Expiry Date <span style={{ color: hasExpiry ? 'rgba(100,116,139,1)' : 'rgba(100,116,139,0.35)' }}>(EOL)</span>
+                                </label>
+                                <input
+                                    type="date"
+                                    name="expiry_date"
+                                    value={formData.expiry_date || ''}
+                                    onChange={handleChange}
+                                    className="input-base"
+                                    disabled={isSaving || !hasExpiry}
+                                    style={{ colorScheme: 'dark', opacity: hasExpiry ? 1 : 0.35 }}
+                                />
+                            </div>
+                            <div className="flex items-end pb-1">
+                                <p className="font-mono text-xs" style={{ color: hasExpiry ? 'rgba(100,116,139,1)' : 'rgba(100,116,139,0.4)' }}>
+                                    Alerts sent at 7d and 1d before expiry, and on expiry day.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
