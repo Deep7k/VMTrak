@@ -21,9 +21,6 @@ jobs:
       - name: Write .env
         run: echo "${{ secrets.BACKEND_ENV }}" > backend/.env
 
-      - name: Create data directories
-        run: mkdir -p app_data app_logs && chmod 777 app_data app_logs
-
       - name: Build images
         run: docker compose build
 

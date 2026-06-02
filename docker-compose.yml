@@ -11,8 +11,8 @@ services:
     environment:
       - TZ=Asia/Kolkata
     volumes:
-      - ./app_data:/app/data
-      - ./app_logs:/app/logs
+      - vm-data:/app/data
+      - vm-logs:/app/logs
     networks:
       - vmtrak-net
     healthcheck:
@@ -39,3 +39,7 @@ services:
 networks:
   vmtrak-net:
     driver: bridge
+
+volumes:
+  vm-data:
+  vm-logs:
