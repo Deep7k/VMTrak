@@ -11,7 +11,7 @@ function getTransporter() {
       host:   process.env.SMTP_HOST || 'localhost',
       port:   parseInt(process.env.SMTP_PORT || '25', 10),
       secure: false,
-      auth:   undefined, // IP-authenticated relay, no credentials
+      auth:   undefined,
       tls:    { rejectUnauthorized: false },
       name:   process.env.SMTP_HELO || 'itappsdev02.indishtech.lan',
     });
@@ -32,95 +32,97 @@ async function sendMail(to, subject, html) {
 }
 
 const SEVERITY = {
-  '30d':     { label: 'Expiry Warning',  color: '#3b82f6', bg: '#1e3a5f', icon: '📅' },
-  '14d':     { label: 'Expiry Warning',  color: '#8b5cf6', bg: '#2e1b5e', icon: '📅' },
-  '7d':      { label: 'Expiry Urgent',   color: '#f59e0b', bg: '#451a03', icon: '⚠️' },
-  '1d':      { label: 'Expiry Critical', color: '#ef4444', bg: '#450a0a', icon: '🚨' },
-  'expired': { label: 'VM Expired',      color: '#dc2626', bg: '#3b0000', icon: '🔴' },
+  '30d':     { label: 'Expiry Warning',  accent: '#2563eb' },
+  '14d':     { label: 'Expiry Warning',  accent: '#2563eb' },
+  '7d':      { label: 'Expiry Warning',  accent: '#d97706' },
+  '1d':      { label: 'Expiry Tomorrow', accent: '#dc2626' },
+  'expired': { label: 'VM Expired',      accent: '#dc2626' },
 };
 
 const VERB = {
-  '30d':     'expires in <strong>30 days</strong>',
-  '14d':     'expires in <strong>14 days</strong>',
-  '7d':      'expires in <strong>7 days</strong>',
-  '1d':      'expires <strong>tomorrow</strong>',
-  'expired': 'has <strong>expired today</strong>',
+  '30d':     'expires in <b>30 days</b>',
+  '14d':     'expires in <b>14 days</b>',
+  '7d':      'expires in <b>7 days</b>',
+  '1d':      'expires <b>tomorrow</b>',
+  'expired': 'expired today',
 };
 
 /**
- * @param {object}   vm           – VM row from DB
- * @param {string}   noticeType   – '30d' | '14d' | '7d' | '1d' | 'expired'
- * @param {string[]} recipients   – list of email addresses
+ * @param {object}   vm          – VM row from DB
+ * @param {string}   noticeType  – '7d' | '1d' | 'expired'
+ * @param {string[]} recipients  – list of email addresses
  */
 async function sendExpiryNotification(vm, noticeType, recipients) {
-  const sev     = SEVERITY[noticeType] || SEVERITY['30d'];
-  const verb    = VERB[noticeType]     || 'is expiring';
-  const appUrl  = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const sev    = SEVERITY[noticeType] || SEVERITY['7d'];
+  const verb   = VERB[noticeType]     || 'is expiring';
+  const appUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const subject = `[VMTrak] ${sev.label} — ${vm.vm_name}`;
 
   const row = (label, value) => value
     ? `<tr>
-        <td style="padding:8px 16px;font-weight:600;color:#94a3b8;font-size:13px;white-space:nowrap;border-bottom:1px solid #1e293b">${label}</td>
-        <td style="padding:8px 16px;color:#e2e8f0;font-size:13px;border-bottom:1px solid #1e293b">${value}</td>
+        <td style="padding:9px 0;color:#6b7280;font-size:13px;width:130px;vertical-align:top">${label}</td>
+        <td style="padding:9px 0;color:#111827;font-size:13px;font-weight:500">${value}</td>
        </tr>`
     : '';
 
   const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0f172a;font-family:'Segoe UI',Arial,sans-serif">
-  <div style="max-width:560px;margin:32px auto;background:#1e293b;border-radius:12px;overflow:hidden;border:1px solid #334155">
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:'Segoe UI',Helvetica,Arial,sans-serif">
 
-    <!-- Header bar -->
-    <div style="background:${sev.color};padding:4px 0"></div>
+  <div style="max-width:520px;margin:40px auto 24px">
 
-    <!-- Top brand row -->
-    <div style="padding:20px 28px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #334155">
-      <div style="width:36px;height:36px;background:#1d9e75;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:monospace;font-weight:700;font-size:18px;color:#fff;flex-shrink:0">V</div>
-      <div>
-        <div style="font-family:monospace;font-weight:700;color:#e2e8f0;font-size:15px">VMTrak</div>
-        <div style="font-size:11px;color:#64748b;margin-top:1px">VM Inventory System</div>
-      </div>
-      <div style="margin-left:auto;background:${sev.bg};color:${sev.color};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid ${sev.color}40">
-        ${sev.icon}&nbsp; ${sev.label.toUpperCase()}
-      </div>
+    <!-- Brand line -->
+    <div style="padding:0 4px 14px;display:flex;align-items:center;gap:8px">
+      <div style="width:26px;height:26px;background:#1d9e75;border-radius:6px;text-align:center;line-height:26px;font-family:monospace;font-weight:700;font-size:14px;color:#fff">V</div>
+      <span style="font-size:14px;font-weight:600;color:#374151">VMTrak</span>
     </div>
 
-    <!-- Body -->
-    <div style="padding:24px 28px">
-      <p style="margin:0 0 20px;color:#cbd5e1;font-size:15px;line-height:1.6">
-        The virtual machine <strong style="color:#f1f5f9">${vm.vm_name}</strong> ${verb}.
-      </p>
+    <!-- Card -->
+    <div style="background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden">
 
-      <!-- VM details table -->
-      <div style="background:#0f172a;border-radius:8px;overflow:hidden;border:1px solid #1e293b;margin-bottom:24px">
+      <!-- Accent bar -->
+      <div style="height:3px;background:${sev.accent}"></div>
+
+      <!-- Body -->
+      <div style="padding:28px 32px">
+
+        <!-- Label chip -->
+        <div style="margin-bottom:18px">
+          <span style="display:inline-block;background:${sev.accent}18;color:${sev.accent};font-size:11px;font-weight:700;letter-spacing:.5px;padding:3px 10px;border-radius:4px;text-transform:uppercase">${sev.label}</span>
+        </div>
+
+        <h1 style="margin:0 0 6px;font-size:18px;font-weight:600;color:#111827">${vm.vm_name}</h1>
+        <p style="margin:0 0 24px;font-size:14px;color:#6b7280">This virtual machine ${verb}.</p>
+
+        <!-- Divider -->
+        <div style="border-top:1px solid #f3f4f6;margin-bottom:20px"></div>
+
+        <!-- Details table -->
         <table style="width:100%;border-collapse:collapse">
-          ${row('VM Name',     vm.vm_name)}
           ${row('IP Address',  vm.ip_address)}
           ${row('Hostname',    vm.hostname)}
-          ${row('Environment', vm.environment)}
+          ${row('Environment', vm.environment ? vm.environment.charAt(0).toUpperCase() + vm.environment.slice(1) : null)}
           ${row('Owner',       vm.owner)}
           ${row('Department',  vm.department)}
-          ${row('Expiry Date', `<span style="color:${sev.color};font-weight:600">${vm.expiry_date}</span>`)}
+          ${row('Expiry Date', `<span style="color:${sev.accent};font-weight:600">${vm.expiry_date}</span>`)}
         </table>
-      </div>
 
-      <!-- CTA button -->
-      <div style="text-align:center;margin-bottom:8px">
-        <a href="${appUrl}/vms/${vm.id}"
-           style="display:inline-block;background:${sev.color};color:#fff;text-decoration:none;padding:10px 28px;border-radius:8px;font-weight:600;font-size:14px">
-          View VM in VMTrak →
-        </a>
+        <!-- CTA -->
+        <div style="margin-top:28px">
+          <a href="${appUrl}/vms/${vm.id}"
+             style="display:inline-block;background:${sev.accent};color:#ffffff;text-decoration:none;padding:9px 22px;border-radius:6px;font-size:13px;font-weight:600">
+            View in VMTrak
+          </a>
+        </div>
+
       </div>
     </div>
 
     <!-- Footer -->
-    <div style="padding:16px 28px;border-top:1px solid #1e293b;text-align:center">
-      <p style="margin:0;font-size:11px;color:#475569">
-        This notification was sent automatically by VMTrak.<br>
-        To stop receiving these alerts, ask your admin to disable notifications on your account.
-      </p>
-    </div>
+    <p style="margin:16px 4px 0;font-size:11px;color:#9ca3af;line-height:1.6">
+      Sent by VMTrak &middot; To stop receiving these alerts, ask your admin to turn off notifications on your account.
+    </p>
 
   </div>
 </body>
