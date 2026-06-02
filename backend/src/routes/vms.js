@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const net     = require('net');
 const { parse: parseCsv } = require('csv-parse/sync');
 const { db } = require('../db/database');
 const { authenticate, requireRole } = require('../middleware/auth');
@@ -86,6 +87,43 @@ router.get('/export', authenticate, requireRole('readwrite'), (req, res, next) =
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="vmtrak-export.csv"');
     res.send(csv);
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/vms/reachability ─────────────────────────────────────────────────
+// Checks TCP connectivity for a list of VM IDs.
+// Port 22 for Linux, 3389 for everything else.
+router.get('/reachability', authenticate, requireRole('read'), async (req, res, next) => {
+  try {
+    const ids = (req.query.ids || '').split(',').map(Number).filter(Boolean);
+    if (ids.length === 0) return res.json({});
+    if (ids.length > 50) return res.status(400).json({ error: 'Max 50 IDs per request' });
+
+    const placeholders = ids.map(() => '?').join(',');
+    const vms = db.prepare(
+      `SELECT id, ip_address, os_type FROM vms WHERE id IN (${placeholders})`
+    ).all(...ids);
+
+    const checkPort = (ip, port) => new Promise(resolve => {
+      const socket = new net.Socket();
+      let done = false;
+      const finish = status => { if (!done) { done = true; socket.destroy(); resolve(status); } };
+      socket.setTimeout(2000);
+      socket.connect(port, ip, () => finish('online'));
+      socket.on('error', () => finish('offline'));
+      socket.on('timeout', () => finish('offline'));
+    });
+
+    const results = await Promise.all(
+      vms.map(async vm => {
+        if (!vm.ip_address) return [String(vm.id), 'unknown'];
+        const port = vm.os_type === 'Linux' ? 22 : 3389;
+        const status = await checkPort(vm.ip_address, port);
+        return [String(vm.id), status];
+      })
+    );
+
+    res.json(Object.fromEntries(results));
   } catch (err) { next(err); }
 });
 

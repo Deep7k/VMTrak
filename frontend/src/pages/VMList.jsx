@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -132,6 +132,24 @@ function ImportModal({ onClose, onImported }) {
   );
 }
 
+function StatusDot({ status }) {
+  const cfg = {
+    online:   { color: '#22c55e', shadow: '0 0 6px #22c55e', label: 'Online'     },
+    offline:  { color: '#ef4444', shadow: 'none',            label: 'Offline'    },
+    unknown:  { color: 'rgba(255,255,255,0.18)', shadow: 'none', label: 'No IP'  },
+    checking: { color: '#f59e0b', shadow: 'none',            label: 'Checking…'  },
+  };
+  const s = cfg[status] || cfg.unknown;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div
+        title={s.label}
+        style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color, boxShadow: s.shadow, flexShrink: 0 }}
+      />
+    </div>
+  );
+}
+
 function ActionsMenu({ vm, canWrite }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -219,8 +237,42 @@ export default function VMList() {
   const [environment, setEnvironment] = useState('');
   const [status, setStatus] = useState('active');
   const [showImport, setShowImport] = useState(false);
+  const [reachability, setReachability] = useState({});
+  const [reachChecking, setReachChecking] = useState(false);
+
+  const fetchReachability = useCallback(async (vmList) => {
+    if (!vmList.length) return;
+    const ids = vmList.map(v => v.id).join(',');
+    // Immediately mark all as "checking"
+    setReachability(Object.fromEntries(vmList.map(v => [String(v.id), 'checking'])));
+    setReachChecking(true);
+    try {
+      const { data } = await api.get(`/vms/reachability?ids=${ids}`);
+      setReachability(data);
+    } catch {
+      setReachability(Object.fromEntries(vmList.map(v => [String(v.id), 'unknown'])));
+    } finally {
+      setReachChecking(false);
+    }
+  }, []);
 
   const columns = useMemo(() => [
+    {
+      id: 'reach',
+      header: () => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span>Status</span>
+          <button
+            title="Refresh connectivity"
+            onClick={e => { e.stopPropagation(); fetchReachability(vms); }}
+            disabled={reachChecking}
+            style={{ background: 'none', border: 'none', cursor: reachChecking ? 'wait' : 'pointer', padding: '0 2px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', lineHeight: 1 }}
+          >↺</button>
+        </div>
+      ),
+      enableSorting: false,
+      cell: info => <StatusDot status={reachability[String(info.row.original.id)]} />,
+    },
     {
       accessorKey: 'vm_name',
       header: 'VM Name',
@@ -230,6 +282,11 @@ export default function VMList() {
       accessorKey: 'ip_address',
       header: 'IP Address',
       cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{info.getValue() || '—'}</div>,
+    },
+    {
+      accessorKey: 'hypervisor',
+      header: 'Hypervisor',
+      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'environment',
@@ -260,7 +317,7 @@ export default function VMList() {
       enableSorting: false,
       cell: info => <ActionsMenu vm={info.row.original} canWrite={canWrite} />,
     },
-  ], []);
+  ], [reachability, reachChecking, canWrite, vms, fetchReachability]);
 
   useEffect(() => {
     loadVMs();
@@ -279,6 +336,7 @@ export default function VMList() {
       const { data } = await api.get(`/vms?${params}`);
       setVms(data.data);
       setTotal(data.total);
+      fetchReachability(data.data);
     } catch (err) {
       console.error('Failed to load VMs:', err);
     } finally {
