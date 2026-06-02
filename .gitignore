@@ -1,5 +1,6 @@
 # Secrets
 .env
+backend/.env
 
 # Dependencies
 node_modules/
@@ -11,7 +12,16 @@ frontend/dist/
 
 # SQLite data (Docker volume in prod; local dev convenience)
 backend/data/*.db
+backend/data/*.db-shm
+backend/data/*.db-wal
 backend/logs/
+
+# Bind-mount directories created by docker compose on the host
+app_data/
+app_logs/
+
+# Claude Code session data
+.claude/
 
 # Editor
 .vscode/
@@ -22,3 +32,9 @@ backend/logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# chatbot
+claude.md
+
+# Local test reports and audit artifacts
+tests/

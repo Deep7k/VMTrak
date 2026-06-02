@@ -1,15 +1,42 @@
 'use strict';
 
-const express   = require('express');
-const bcrypt    = require('bcryptjs');
-const jwt       = require('jsonwebtoken');
-const crypto    = require('crypto');
-const { db }    = require('../db/database');
+const express    = require('express');
+const bcrypt     = require('bcryptjs');
+const jwt        = require('jsonwebtoken');
+const crypto     = require('crypto');
+const rateLimit  = require('express-rate-limit');
+const { ConfidentialClientApplication } = require('@azure/msal-node');
+const { db }     = require('../db/database');
 const { authenticate } = require('../middleware/auth');
 const { writeAudit, getIp } = require('../middleware/audit');
-const { loginSchema, validate } = require('../utils/validators');
+const { loginSchema, initialSetupSchema, validate } = require('../utils/validators');
+const logger = require('../utils/logger');
 
 const router = express.Router();
+
+// ── Microsoft Entra ID (MSAL) ─────────────────────────────────────────────────
+let _msalClient = null;
+function getMsalClient() {
+  if (!_msalClient && process.env.ENTRA_CLIENT_ID) {
+    _msalClient = new ConfidentialClientApplication({
+      auth: {
+        clientId:     process.env.ENTRA_CLIENT_ID,
+        authority:    `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}`,
+        clientSecret: process.env.ENTRA_CLIENT_SECRET,
+      },
+    });
+  }
+  return _msalClient;
+}
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  skipSuccessfulRequests: true, // only failed attempts count toward the limit
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many failed login attempts — try again in 15 minutes' },
+});
 
 const ACCESS_EXPIRY  = process.env.ACCESS_TOKEN_EXPIRY  || '15m';
 const REFRESH_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
@@ -36,7 +63,7 @@ function issueRefreshToken(userId) {
 }
 
 // POST /api/auth/login
-router.post('/login', (req, res, next) => {
+router.post('/login', loginLimiter, (req, res, next) => {
   try {
     const { username, password } = validate(loginSchema, req.body);
     const user = db.prepare(
@@ -70,7 +97,13 @@ router.post('/login', (req, res, next) => {
 
     res.json({
       accessToken,
-      user: { id: user.id, username: user.username, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        must_change_password: user.must_change_password === 1,
+      },
     });
   } catch (err) {
     next(err);
@@ -129,8 +162,133 @@ router.post('/logout', authenticate, (req, res, next) => {
 
 // GET /api/auth/me
 router.get('/me', authenticate, (req, res) => {
-  const user = db.prepare('SELECT id, username, email, role, created_at FROM users WHERE id = ?').get(req.user.id);
-  res.json(user);
+  const user = db.prepare(
+    'SELECT id, username, email, role, must_change_password, created_at FROM users WHERE id = ?'
+  ).get(req.user.id);
+  res.json({ ...user, must_change_password: user.must_change_password === 1 });
+});
+
+// POST /api/auth/complete-setup
+router.post('/complete-setup', authenticate, (req, res, next) => {
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE id = ? AND is_active = 1').get(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.must_change_password) return res.status(400).json({ error: 'Setup already completed' });
+
+    const { email, password } = validate(initialSetupSchema, req.body);
+
+    const emailConflict = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, user.id);
+    if (emailConflict) return res.status(409).json({ error: 'Email already in use' });
+
+    const hash = bcrypt.hashSync(password, 12);
+
+    db.prepare(`
+      UPDATE users
+      SET email = ?, password_hash = ?, must_change_password = 0, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(email, hash, user.id);
+
+    // Invalidate all existing refresh tokens so the next request uses the fresh state
+    db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').run(user.id);
+
+    writeAudit({
+      user_id: user.id,
+      username: user.username,
+      action: 'auth.setup_completed',
+      entity_type: 'user',
+      entity_id: user.id,
+      entity_name: user.username,
+      ip_address: getIp(req),
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/auth/microsoft — initiate Entra ID login
+router.get('/microsoft', async (req, res) => {
+  const client = getMsalClient();
+  if (!client) return res.status(503).json({ error: 'Microsoft authentication is not configured' });
+
+  // Sign a short-lived state token to prevent CSRF
+  const state = jwt.sign(
+    { nonce: crypto.randomBytes(8).toString('hex') },
+    process.env.JWT_ACCESS_SECRET,
+    { expiresIn: '5m' }
+  );
+
+  const authUrl = await client.getAuthCodeUrl({
+    scopes:      ['openid', 'email', 'profile'],
+    redirectUri: process.env.ENTRA_REDIRECT_URI,
+    state,
+  });
+
+  res.redirect(authUrl);
+});
+
+// GET /api/auth/microsoft/callback — handle Entra ID response
+router.get('/microsoft/callback', async (req, res) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const adminEmail  = encodeURIComponent(process.env.SITE_ADMIN_EMAIL || '');
+
+  try {
+    const { code, state, error: msError, error_description } = req.query;
+
+    if (msError) {
+      logger.warn('Microsoft auth error', { msError, error_description });
+      return res.redirect(`${frontendUrl}/login?ms_error=auth_failed`);
+    }
+
+    // Validate state to prevent CSRF
+    jwt.verify(state, process.env.JWT_ACCESS_SECRET);
+
+    const client = getMsalClient();
+    const result = await client.acquireTokenByCode({
+      code,
+      scopes:      ['openid', 'email', 'profile'],
+      redirectUri: process.env.ENTRA_REDIRECT_URI,
+    });
+
+    // UPN is the email for M365 accounts
+    const email = (result.idTokenClaims?.email || result.account?.username || '').toLowerCase();
+
+    if (!email) {
+      return res.redirect(`${frontendUrl}/login?ms_error=no_email`);
+    }
+
+    const user = db.prepare(
+      'SELECT * FROM users WHERE LOWER(email) = ? AND is_active = 1'
+    ).get(email);
+
+    if (!user) {
+      return res.redirect(`${frontendUrl}/login?ms_error=not_found&ms_admin=${adminEmail}`);
+    }
+
+    const accessToken  = signAccessToken(user);
+    const refreshToken = issueRefreshToken(user.id);
+
+    writeAudit({
+      user_id: user.id, username: user.username,
+      action: 'auth.login', entity_type: 'auth',
+      ip_address: getIp(req),
+      detail: { method: 'entra' },
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge:   REFRESH_EXPIRY_MS,
+    });
+
+    res.redirect(`${frontendUrl}/auth/callback?token=${encodeURIComponent(accessToken)}`);
+
+  } catch (err) {
+    logger.error('Microsoft auth callback failed', { error: err.message });
+    res.redirect(`${frontendUrl}/login?ms_error=auth_failed`);
+  }
 });
 
 module.exports = router;

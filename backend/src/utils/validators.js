@@ -8,18 +8,24 @@ const loginSchema = z.object({
   password: z.string().min(1).max(256),
 });
 
+const initialSetupSchema = z.object({
+  email:    z.string().email().max(256),
+  password: z.string().min(8).max(256),
+});
+
 // ── Users ─────────────────────────────────────────────────────────────────────
 const createUserSchema = z.object({
   username: z.string().min(2).max(64).regex(/^[a-zA-Z0-9._-]+$/, 'Invalid username'),
   email:    z.string().email().max(256),
   password: z.string().min(8).max(256),
-  role:     z.enum(['admin', 'support']).default('support'),
+  role:     z.enum(['admin', 'readwrite', 'read']).default('readwrite'),
 });
 
 const updateUserSchema = z.object({
-  email:     z.string().email().max(256).optional(),
-  role:      z.enum(['admin', 'support']).optional(),
-  is_active: z.boolean().optional(),
+  email:         z.string().email().max(256).optional(),
+  role:          z.enum(['admin', 'readwrite', 'read']).optional(),
+  is_active:     z.boolean().optional(),
+  notify_expiry: z.boolean().optional(),
 });
 
 const resetPasswordSchema = z.object({
@@ -105,6 +111,7 @@ const vmQuerySchema = z.object({
   status:      z.enum(['active', 'decommissioned', 'maintenance']).optional(),
   power_state: z.enum(['on', 'off', 'suspended', 'unknown']).optional(),
   department:  z.string().optional(),
+  hypervisor:  z.string().optional(),
   expiring_in: z.coerce.number().int().min(0).optional(),
   page:        z.coerce.number().int().min(1).default(1),
   limit:       z.coerce.number().int().min(1).max(200).default(50),
@@ -129,6 +136,7 @@ function validate(schema, input) {
 
 module.exports = {
   loginSchema,
+  initialSetupSchema,
   createUserSchema,
   updateUserSchema,
   resetPasswordSchema,

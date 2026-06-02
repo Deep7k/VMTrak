@@ -11,23 +11,19 @@ function getTransporter() {
       host:   process.env.SMTP_HOST || 'localhost',
       port:   parseInt(process.env.SMTP_PORT || '25', 10),
       secure: false,
-      auth:   undefined, // IP-authenticated relay, no credentials
+      auth:   undefined,
       tls:    { rejectUnauthorized: false },
+      name:   process.env.SMTP_HELO || 'itappsdev02.indishtech.lan',
     });
   }
   return _transporter;
 }
 
-/**
- * @param {string[]} to
- * @param {string}   subject
- * @param {string}   html
- */
 async function sendMail(to, subject, html) {
   const transporter = getTransporter();
   const info = await transporter.sendMail({
     from: process.env.SMTP_FROM || 'vminventory@localhost',
-    to:   to.join(', '),
+    to:   Array.isArray(to) ? to.join(', ') : to,
     subject,
     html,
   });
@@ -35,50 +31,100 @@ async function sendMail(to, subject, html) {
   return info;
 }
 
-const LABEL = {
-  '30d':     { tag: 'EXPIRY WARNING',  verb: 'expires in 30 days' },
-  '14d':     { tag: 'EXPIRY WARNING',  verb: 'expires in 14 days' },
-  '7d':      { tag: 'EXPIRY URGENT',   verb: 'expires in 7 days'  },
-  '1d':      { tag: 'EXPIRY CRITICAL', verb: 'expires TOMORROW'   },
-  'expired': { tag: 'VM EXPIRED TODAY', verb: 'has expired today'  },
+const SEVERITY = {
+  '7d':      { label: 'Expiry Warning',  accent: '#d97706' },
+  '1d':      { label: 'Expiry Tomorrow', accent: '#dc2626' },
+  'expired': { label: 'VM Expired',      accent: '#dc2626' },
+};
+
+const VERB = {
+  '7d':      'expires in <b>7 days</b>',
+  '1d':      'expires <b>tomorrow</b>',
+  'expired': 'expired today',
 };
 
 /**
- * Send a VM expiry notification.
- * @param {object} vm          – VM row from DB
- * @param {'30d'|'14d'|'7d'|'1d'|'expired'} noticeType
+ * @param {object}   vm          – VM row from DB
+ * @param {string}   noticeType  – '7d' | '1d' | 'expired'
+ * @param {string[]} recipients  – list of email addresses
  */
-async function sendExpiryNotification(vm, noticeType) {
-  const label      = LABEL[noticeType] || { tag: 'EXPIRY NOTICE', verb: 'is expiring' };
-  const appUrl     = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const adminEmail = process.env.NOTIFY_ADMIN_EMAIL;
+async function sendExpiryNotification(vm, noticeType, recipients) {
+  const sev    = SEVERITY[noticeType] || SEVERITY['expired'];
+  const verb   = VERB[noticeType]     || 'is expiring';
+  const appUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const subject = `[VMTrak] ${sev.label} — ${vm.vm_name}`;
 
-  const to = [];
-  if (adminEmail) to.push(adminEmail);
-  if (vm.owner && vm.owner.includes('@') && vm.owner !== adminEmail) to.push(vm.owner);
-  if (to.length === 0) {
-    logger.warn('sendExpiryNotification: no recipients configured, skipping', { vm_id: vm.id });
-    return;
-  }
+  const row = (label, value) => value
+    ? `<tr>
+        <td style="padding:9px 0;color:#6b7280;font-size:13px;width:130px;vertical-align:top">${label}</td>
+        <td style="padding:9px 0;color:#111827;font-size:13px;font-weight:500">${value}</td>
+       </tr>`
+    : '';
 
-  const subject = `[VM Inventory] ${label.tag} — ${vm.vm_name} ${label.verb}`;
-  const html = `
-    <h2 style="color:#c0392b">${label.tag}</h2>
-    <p>The following VM <strong>${label.verb}</strong>.</p>
-    <table cellpadding="6" style="border-collapse:collapse">
-      <tr><td><strong>VM Name</strong></td><td>${vm.vm_name}</td></tr>
-      <tr><td><strong>IP Address</strong></td><td>${vm.ip_address || 'N/A'}</td></tr>
-      <tr><td><strong>Environment</strong></td><td>${vm.environment || 'N/A'}</td></tr>
-      <tr><td><strong>Owner</strong></td><td>${vm.owner || 'N/A'}</td></tr>
-      <tr><td><strong>Department</strong></td><td>${vm.department || 'N/A'}</td></tr>
-      <tr><td><strong>Expiry Date</strong></td><td>${vm.expiry_date}</td></tr>
-    </table>
-    <p><a href="${appUrl}/vms/${vm.id}">View VM in VMTrak →</a></p>
-    <hr/>
-    <small>This notification was sent automatically by VMTrak.</small>
-  `;
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:'Segoe UI',Helvetica,Arial,sans-serif">
 
-  await sendMail(to, subject, html);
+  <div style="max-width:520px;margin:40px auto 24px">
+
+    <!-- Brand line -->
+    <div style="padding:0 4px 14px;display:flex;align-items:center;gap:8px">
+      <div style="width:26px;height:26px;background:#1d9e75;border-radius:6px;text-align:center;line-height:26px;font-family:monospace;font-weight:700;font-size:14px;color:#fff">V</div>
+      <span style="font-size:14px;font-weight:600;color:#374151">VMTrak</span>
+    </div>
+
+    <!-- Card -->
+    <div style="background:#ffffff;border-radius:8px;border:1px solid #e5e7eb;overflow:hidden">
+
+      <!-- Accent bar -->
+      <div style="height:3px;background:${sev.accent}"></div>
+
+      <!-- Body -->
+      <div style="padding:28px 32px">
+
+        <!-- Label chip -->
+        <div style="margin-bottom:18px">
+          <span style="display:inline-block;background:${sev.accent}18;color:${sev.accent};font-size:11px;font-weight:700;letter-spacing:.5px;padding:3px 10px;border-radius:4px;text-transform:uppercase">${sev.label}</span>
+        </div>
+
+        <h1 style="margin:0 0 6px;font-size:18px;font-weight:600;color:#111827">${vm.vm_name}</h1>
+        <p style="margin:0 0 24px;font-size:14px;color:#6b7280">This virtual machine ${verb}.</p>
+
+        <!-- Divider -->
+        <div style="border-top:1px solid #f3f4f6;margin-bottom:20px"></div>
+
+        <!-- Details table -->
+        <table style="width:100%;border-collapse:collapse">
+          ${row('IP Address',  vm.ip_address)}
+          ${row('Hostname',    vm.hostname)}
+          ${row('Environment', vm.environment ? vm.environment.charAt(0).toUpperCase() + vm.environment.slice(1) : null)}
+          ${row('Owner',       vm.owner)}
+          ${row('Department',  vm.department)}
+          ${row('Expiry Date', `<span style="color:${sev.accent};font-weight:600">${vm.expiry_date}</span>`)}
+        </table>
+
+        <!-- CTA -->
+        <div style="margin-top:28px">
+          <a href="${appUrl}/vms/${vm.id}"
+             style="display:inline-block;background:${sev.accent};color:#ffffff;text-decoration:none;padding:9px 22px;border-radius:6px;font-size:13px;font-weight:600">
+            View in VMTrak
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <p style="margin:16px 4px 0;font-size:11px;color:#9ca3af;line-height:1.6">
+      Sent by VMTrak &middot; To stop receiving these alerts, ask your admin to turn off notifications on your account.
+    </p>
+
+  </div>
+</body>
+</html>`;
+
+  await sendMail(recipients, subject, html);
 }
 
 module.exports = { sendMail, sendExpiryNotification };

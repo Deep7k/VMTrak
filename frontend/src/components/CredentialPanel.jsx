@@ -4,6 +4,7 @@ import api from '../api/client';
 export default function CredentialPanel({ vmId, credentials }) {
   const [revealed, setRevealed] = useState({});
   const [timers, setTimers] = useState({});
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     // Cleanup interval on unmount
@@ -53,13 +54,14 @@ export default function CredentialPanel({ vmId, credentials }) {
     }
   };
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text, credId) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard');
+    setCopiedId(credId);
+    setTimeout(() => setCopiedId(null), 1500);
   };
 
   return (
-    <div className="card-base border border-slate-700 p-6">
+    <div className="card-base p-6">
       <h2 className="text-lg font-mono font-bold text-slate-100 mb-4">Credentials</h2>
 
       {credentials.length === 0 ? (
@@ -67,7 +69,7 @@ export default function CredentialPanel({ vmId, credentials }) {
       ) : (
         <div className="space-y-3">
           {credentials.map((cred) => (
-            <div key={cred.id} className="bg-slate-800/50 border border-slate-700 rounded p-4 space-y-2">
+            <div key={cred.id} className="space-y-2" style={{ background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '12px 16px' }}>
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-mono text-sm text-slate-100">{cred.username}</div>
@@ -84,10 +86,10 @@ export default function CredentialPanel({ vmId, credentials }) {
                 {revealed[cred.id] ? (
                   <div className="text-right">
                     <button
-                      onClick={() => copyToClipboard(revealed[cred.id])}
-                      className="text-emerald-400 hover:text-emerald-300 font-mono text-xs"
+                      onClick={() => copyToClipboard(revealed[cred.id], cred.id)}
+                      className={`font-mono text-xs transition-colors ${copiedId === cred.id ? 'text-slate-400 cursor-default' : 'text-emerald-400 hover:text-emerald-300'}`}
                     >
-                      Copy
+                      {copiedId === cred.id ? 'Copied!' : 'Copy'}
                     </button>
                     <div className="text-xs text-red-400 mt-1">
                       Expires in {timers[cred.id]}s
@@ -104,7 +106,7 @@ export default function CredentialPanel({ vmId, credentials }) {
               </div>
 
               {revealed[cred.id] && (
-                <div className="bg-slate-900/50 p-2 rounded border border-slate-600 font-mono text-sm text-slate-100 break-all">
+                <div className="font-mono text-sm break-all" style={{ background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '8px 10px', color: '#e8e8e8' }}>
                   {revealed[cred.id]}
                 </div>
               )}

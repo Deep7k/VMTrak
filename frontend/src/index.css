@@ -2,47 +2,159 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Industrial/Utilitarian Theme */
 @layer base {
     html {
-        @apply bg-slate-950 text-slate-100;
+        background: #0a0c10;
+        color: #e8e8e8;
     }
-
     body {
-        @apply font-sans;
+        font-family: ui-sans-serif, system-ui, sans-serif;
     }
 }
 
 @layer components {
+    /* ── Cards ── */
+    .card-base {
+        background: rgba(255,255,255,0.04);
+        border: 0.5px solid rgba(255,255,255,0.07);
+        border-radius: 8px;
+    }
+
+    /* ── Table styles inside cards ── */
+    .card-base thead tr {
+        background: rgba(255,255,255,0.03);
+        border-bottom: 0.5px solid rgba(255,255,255,0.07);
+    }
+
+    .card-base thead th {
+        padding: 8px 14px;
+        text-align: left;
+        font-family: monospace;
+        font-size: 10px;
+        font-weight: 500;
+        color: rgba(255,255,255,0.35);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+    }
+
+    .card-base tbody tr {
+        border-bottom: 0.5px solid rgba(255,255,255,0.05);
+        transition: background 0.12s;
+    }
+
+    .card-base tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .card-base tbody tr:hover {
+        background: rgba(255,255,255,0.03);
+    }
+
+    .card-base tbody td {
+        padding: 10px 14px;
+    }
+
+    /* ── Inputs ── */
+    .input-base {
+        width: 100%;
+        padding: 7px 10px;
+        background: rgba(255,255,255,0.05);
+        border: 0.5px solid rgba(255,255,255,0.12);
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        color: rgba(255,255,255,0.8);
+        outline: none;
+        transition: border-color 0.15s;
+    }
+
+    .input-base::placeholder {
+        color: rgba(255,255,255,0.2);
+    }
+
+    .input-base:focus {
+        border-color: rgba(29,158,117,0.7);
+    }
+
+    /* Force dark background on native select option list */
+    select.input-base option {
+        background: #12151e;
+        color: rgba(255,255,255,0.8);
+    }
+
+    /* ── Buttons ── */
     .btn-primary {
-        @apply px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-mono text-sm transition-colors;
+        padding: 6px 14px;
+        background: #1d9e75;
+        border: none;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        font-weight: 500;
+        color: #fff;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .btn-primary:hover {
+        background: #18876a;
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
     .btn-secondary {
-        @apply px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-100 rounded font-mono text-sm transition-colors;
+        padding: 6px 12px;
+        background: rgba(255,255,255,0.06);
+        border: 0.5px solid rgba(255,255,255,0.1);
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        color: rgba(255,255,255,0.55);
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255,255,255,0.1);
+        color: rgba(255,255,255,0.85);
+    }
+
+    .btn-secondary:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
     }
 
     .btn-danger {
-        @apply px-3 py-2 bg-red-700 hover:bg-red-600 text-white rounded font-mono text-sm transition-colors;
+        padding: 6px 12px;
+        background: rgba(226,75,74,0.12);
+        border: 0.5px solid rgba(226,75,74,0.3);
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        color: #e87878;
+        cursor: pointer;
+        transition: background 0.15s;
     }
 
-    .input-base {
-        @apply w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded font-mono text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-colors;
+    .btn-danger:hover {
+        background: rgba(226,75,74,0.22);
     }
 
-    .status-badge {
-        @apply inline-block px-2 py-1 rounded font-mono text-xs font-semibold;
+    .btn-danger:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
-    .status-online {
-        @apply bg-emerald-900/40 text-emerald-300;
-    }
-
-    .status-offline {
-        @apply bg-red-900/40 text-red-300;
-    }
-
-    .card-base {
-        @apply bg-slate-800 border border-slate-700 rounded;
+    /* ── Modal ── */
+    .glass-modal {
+        background: #12151e;
+        border: 0.5px solid rgba(255,255,255,0.1);
+        border-radius: 10px;
+        width: 100%;
+        max-width: 28rem;
+        padding: 24px;
     }
 }

@@ -16,7 +16,7 @@ function resolveVm(id) {
 }
 
 // ── GET /api/vms/:id/credentials ──────────────────────────────────────────────
-router.get('/:id/credentials', authenticate, (req, res, next) => {
+router.get('/:id/credentials', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const vm = resolveVm(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
@@ -31,7 +31,7 @@ router.get('/:id/credentials', authenticate, (req, res, next) => {
 });
 
 // ── POST /api/vms/:id/credentials  [admin] ───────────────────────────────────
-router.post('/:id/credentials', authenticate, requireRole('admin'), (req, res, next) => {
+router.post('/:id/credentials', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const vm = resolveVm(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
@@ -65,7 +65,7 @@ router.post('/:id/credentials', authenticate, requireRole('admin'), (req, res, n
 });
 
 // ── PUT /api/vms/:id/credentials/:cid  [admin] ───────────────────────────────
-router.put('/:id/credentials/:cid', authenticate, requireRole('admin'), (req, res, next) => {
+router.put('/:id/credentials/:cid', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const vm   = resolveVm(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
@@ -108,7 +108,7 @@ router.put('/:id/credentials/:cid', authenticate, requireRole('admin'), (req, re
 });
 
 // ── DELETE /api/vms/:id/credentials/:cid  [admin] ────────────────────────────
-router.delete('/:id/credentials/:cid', authenticate, requireRole('admin'), (req, res, next) => {
+router.delete('/:id/credentials/:cid', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const vm   = resolveVm(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
@@ -130,7 +130,7 @@ router.delete('/:id/credentials/:cid', authenticate, requireRole('admin'), (req,
 });
 
 // ── GET /api/vms/:id/credentials/:cid/reveal ─────────────────────────────────
-router.get('/:id/credentials/:cid/reveal', authenticate, (req, res, next) => {
+router.get('/:id/credentials/:cid/reveal', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const vm   = resolveVm(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });

@@ -12,7 +12,7 @@ const router = express.Router();
 // All user management routes require admin
 router.use(authenticate, requireRole('admin'));
 
-const PUBLIC_FIELDS = 'id, username, email, role, is_active, created_at, updated_at';
+const PUBLIC_FIELDS = 'id, username, email, role, is_active, notify_expiry, created_at, updated_at';
 
 // ── GET /api/users ────────────────────────────────────────────────────────────
 router.get('/', (req, res, next) => {
@@ -58,7 +58,7 @@ router.put('/:id', (req, res, next) => {
 
     // Prevent demoting the last active admin
     const data = validate(updateUserSchema, req.body);
-    if (data.role === 'support' || data.is_active === false) {
+    if (data.role !== 'admin' || data.is_active === false) {
       const adminCount = db.prepare("SELECT COUNT(*) as n FROM users WHERE role = 'admin' AND is_active = 1").get().n;
       if (adminCount <= 1 && existing.role === 'admin') {
         return res.status(400).json({ error: 'Cannot demote or deactivate the last admin' });
@@ -66,9 +66,10 @@ router.put('/:id', (req, res, next) => {
     }
 
     const updates = {};
-    if (data.email     !== undefined) updates.email     = data.email;
-    if (data.role      !== undefined) updates.role      = data.role;
-    if (data.is_active !== undefined) updates.is_active = data.is_active ? 1 : 0;
+    if (data.email         !== undefined) updates.email         = data.email;
+    if (data.role          !== undefined) updates.role          = data.role;
+    if (data.is_active     !== undefined) updates.is_active     = data.is_active ? 1 : 0;
+    if (data.notify_expiry !== undefined) updates.notify_expiry = data.notify_expiry ? 1 : 0;
     updates.updated_at = new Date().toISOString();
 
     const fields = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');

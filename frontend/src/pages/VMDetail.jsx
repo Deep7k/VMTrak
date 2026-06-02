@@ -2,14 +2,36 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import CredentialPanel from '../components/CredentialPanel';
+import { useAuthStore } from '../store/authStore';
+import { hasMinRole } from '../components/Guards';
+
+const REACH_CFG = {
+    online:   { color: '#22c55e', shadow: '0 0 6px #22c55e', label: 'Online'    },
+    offline:  { color: '#ef4444', shadow: 'none',            label: 'Offline'   },
+    checking: { color: '#f59e0b', shadow: 'none',            label: 'Checking…' },
+    unknown:  { color: 'rgba(255,255,255,0.2)', shadow: 'none', label: 'Unknown' },
+};
+
+function StatusBadge({ status }) {
+    const cfg = REACH_CFG[status] || REACH_CFG.unknown;
+    return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: cfg.color, boxShadow: cfg.shadow, flexShrink: 0, display: 'inline-block' }} />
+            <span className="font-mono text-xs" style={{ color: cfg.color }}>{cfg.label}</span>
+        </span>
+    );
+}
 
 export default function VMDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const user = useAuthStore(s => s.user);
+    const canWrite = hasMinRole(user, 'readwrite');
     const [vm, setVm] = useState(null);
     const [credentials, setCredentials] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [reach, setReach] = useState('checking');
 
     useEffect(() => {
         loadVM();
@@ -21,8 +43,19 @@ export default function VMDetail() {
             const vmRes = await api.get(`/vms/${id}`);
             setVm(vmRes.data);
 
-            const credsRes = await api.get(`/vms/${id}/credentials`);
-            setCredentials(credsRes.data);
+            if (canWrite) {
+                const credsRes = await api.get(`/vms/${id}/credentials`);
+                setCredentials(credsRes.data);
+            }
+
+            // Fetch connectivity non-blocking
+            if (vmRes.data.ip_address) {
+                api.get(`/vms/reachability?ids=${id}`)
+                    .then(r => setReach(r.data[String(id)] || 'unknown'))
+                    .catch(() => setReach('unknown'));
+            } else {
+                setReach('unknown');
+            }
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to load VM');
         } finally {
@@ -32,15 +65,13 @@ export default function VMDetail() {
 
     const downloadRDP = async () => {
         try {
-            const response = await api.get(`/vms/${id}/rdp`, {
-                responseType: 'blob',
-            });
+            const response = await api.get(`/vms/${id}/rdp`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(response.data);
             const a = document.createElement('a');
             a.href = url;
             a.download = `${vm.vm_name}.rdp`;
             a.click();
-        } catch (err) {
+        } catch {
             alert('Failed to download RDP file');
         }
     };
@@ -49,11 +80,21 @@ export default function VMDetail() {
     if (error) return <div className="p-6 text-red-400 font-mono">{error}</div>;
     if (!vm) return <div className="p-6 text-slate-400 font-mono">VM not found</div>;
 
+    const isLinux = vm.os_type === 'Linux';
+
     const envColors = {
-        production: 'bg-red-900/40 text-red-300',
-        staging: 'bg-yellow-900/40 text-yellow-300',
+        production:  'bg-red-900/40 text-red-300',
+        staging:     'bg-yellow-900/40 text-yellow-300',
         development: 'bg-blue-900/40 text-blue-300',
+        test:        'bg-purple-900/40 text-purple-300',
     };
+
+    const Field = ({ label, children }) => (
+        <div>
+            <label className="text-xs font-mono text-slate-400 uppercase">{label}</label>
+            <div className="mt-1">{children}</div>
+        </div>
+    );
 
     return (
         <div className="p-6 space-y-6 max-w-4xl">
@@ -63,72 +104,80 @@ export default function VMDetail() {
                     <button onClick={() => navigate('/vms')} className="text-emerald-400 hover:text-emerald-300 font-mono text-sm mb-2">
                         ← Back to VMs
                     </button>
-                    <h1 className="text-2xl font-mono font-bold text-slate-100">{vm.vm_name}</h1>
-                    <p className="text-slate-400 font-mono text-sm mt-1">{vm.ip_address}</p>
+                    <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#e8e8e8', margin: 0 }}>{vm.vm_name}</h1>
+                    <div className="flex items-center gap-3 mt-1">
+                        <span className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>{vm.ip_address || 'No IP'}</span>
+                        <StatusBadge status={reach} />
+                    </div>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={downloadRDP} className="btn-primary">
-                        Download RDP
-                    </button>
-                    <button onClick={() => navigate(`/vms/${id}/edit`)} className="btn-secondary">
-                        Edit
-                    </button>
+                    {canWrite && !isLinux && (
+                        <button onClick={downloadRDP} className="btn-primary">
+                            Download RDP
+                        </button>
+                    )}
+                    {canWrite && (
+                        <button onClick={() => navigate(`/vms/${id}/edit`)} className="btn-secondary">
+                            Edit
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* VM Details */}
-            <div className="card-base border border-slate-700 p-6 space-y-4">
+            <div className="card-base p-6 space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                    <div>
-                        <label className="text-xs font-mono text-slate-400 uppercase">Hostname</label>
-                        <p className="text-slate-100 font-mono mt-1">{vm.hostname || '—'}</p>
-                    </div>
-                    <div>
-                        <label className="text-xs font-mono text-slate-400 uppercase">OS Type</label>
-                        <p className="text-slate-100 font-mono mt-1">{vm.os_type || '—'}</p>
-                    </div>
-                    <div>
-                        <label className="text-xs font-mono text-slate-400 uppercase">OS Version</label>
-                        <p className="text-slate-100 font-mono mt-1">{vm.os_version || '—'}</p>
-                    </div>
-                    <div>
-                        <label className="text-xs font-mono text-slate-400 uppercase">Environment</label>
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-mono mt-1 ${envColors[vm.environment] || 'text-slate-300'}`}>
+                    <Field label="Hostname">
+                        <p className="text-slate-100 font-mono">{vm.hostname || '—'}</p>
+                    </Field>
+                    <Field label="OS Type">
+                        <p className="text-slate-100 font-mono">{vm.os_type || '—'}</p>
+                    </Field>
+                    <Field label="OS Version">
+                        <p className="text-slate-100 font-mono">{vm.os_version || '—'}</p>
+                    </Field>
+                    <Field label="Environment">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-mono ${envColors[vm.environment] || 'text-slate-300'}`}>
                             {vm.environment || '—'}
                         </span>
-                    </div>
-                    <div>
-                        <label className="text-xs font-mono text-slate-400 uppercase">Power State</label>
-                        <p className="text-slate-100 font-mono mt-1">{vm.power_state}</p>
-                    </div>
-                    <div>
-                        <label className="text-xs font-mono text-slate-400 uppercase">Owner</label>
-                        <p className="text-slate-100 font-mono mt-1">{vm.owner || '—'}</p>
-                    </div>
-                    <div>
-                        <label className="text-xs font-mono text-slate-400 uppercase">vCPU</label>
-                        <p className="text-slate-100 font-mono mt-1">{vm.vcpu || '—'}</p>
-                    </div>
-                    <div>
-                        <label className="text-xs font-mono text-slate-400 uppercase">RAM (GB)</label>
-                        <p className="text-slate-100 font-mono mt-1">{vm.ram_gb || '—'}</p>
-                    </div>
-                    <div>
-                        <label className="text-xs font-mono text-slate-400 uppercase">Disk (GB)</label>
-                        <p className="text-slate-100 font-mono mt-1">{vm.disk_gb || '—'}</p>
-                    </div>
+                    </Field>
+                    <Field label="Power State">
+                        <p className="text-slate-100 font-mono">{vm.power_state}</p>
+                    </Field>
+                    <Field label="Owner">
+                        <p className="text-slate-100 font-mono">{vm.owner || '—'}</p>
+                    </Field>
+                    <Field label="vCPU">
+                        <p className="text-slate-100 font-mono">{vm.vcpu || '—'}</p>
+                    </Field>
+                    <Field label="RAM (GB)">
+                        <p className="text-slate-100 font-mono">{vm.ram_gb || '—'}</p>
+                    </Field>
+                    <Field label="Disk (GB)">
+                        <p className="text-slate-100 font-mono">{vm.disk_gb || '—'}</p>
+                    </Field>
+                    {vm.hypervisor && (
+                        <Field label="Hypervisor Host">
+                            <p className="text-slate-100 font-mono">{vm.hypervisor}</p>
+                        </Field>
+                    )}
+                    {vm.expiry_date && (
+                        <Field label="Expiry Date">
+                            <p className="font-mono" style={{ color: '#f59e0b' }}>{vm.expiry_date}</p>
+                        </Field>
+                    )}
                 </div>
 
                 {vm.description && (
-                    <div className="pt-4 border-t border-slate-700">
+                    <div style={{ paddingTop: '16px', borderTop: '0.5px solid rgba(255,255,255,0.07)' }}>
                         <label className="text-xs font-mono text-slate-400 uppercase">Description</label>
                         <p className="text-slate-100 mt-2 whitespace-pre-wrap">{vm.description}</p>
                     </div>
                 )}
             </div>
 
-            {/* Credentials */}
-            <CredentialPanel vmId={id} credentials={credentials} />
+            {/* Credentials — hidden for read-only role */}
+            {canWrite && <CredentialPanel vmId={id} credentials={credentials} />}
         </div>
     );
 }

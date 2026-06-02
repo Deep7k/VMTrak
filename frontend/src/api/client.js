@@ -1,7 +1,6 @@
 import axios from 'axios';
-import { useAuth } from '../hooks/useAuth';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -38,8 +37,8 @@ api.interceptors.response.use(
                     {},
                     { withCredentials: true }
                 );
-                localStorage.setItem('token', data.token);
-                originalRequest.headers.Authorization = `Bearer ${data.token}`;
+                localStorage.setItem('token', data.accessToken);
+                originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
                 return api(originalRequest);
             } catch (refreshError) {
                 localStorage.removeItem('token');

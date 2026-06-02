@@ -5,6 +5,7 @@ require('dotenv').config();
 const express      = require('express');
 const cookieParser = require('cookie-parser');
 const cors         = require('cors');
+const helmet       = require('helmet');
 const { initDb }   = require('./db/database');
 const logger       = require('./utils/logger');
 
@@ -22,6 +23,7 @@ const PORT = process.env.PORT || 3001;
 // ── Core middleware ───────────────────────────────────────────────────────────
 app.set('trust proxy', 1); // Respect X-Forwarded-For from NPM
 
+app.use(helmet());
 app.use(cors({
   origin:      process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,

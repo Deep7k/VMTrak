@@ -40,8 +40,8 @@ export const useAuthStore = create((set) => ({
     refreshUser: async () => {
         try {
             const { data } = await api.get('/auth/me');
-            set({ user: data.user });
-            return data.user;
+            set({ user: data });
+            return data;
         } catch (error) {
             localStorage.removeItem('token');
             set({
@@ -64,7 +64,7 @@ export const useAuthStore = create((set) => ({
 
             const { data } = await api.get('/auth/me');
             set({
-                user: data.user,
+                user: data,
                 isAuthenticated: true,
                 isLoading: false,
             });

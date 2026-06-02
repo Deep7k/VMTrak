@@ -1,0 +1,42 @@
+name: Deploy to Dev
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy (Dev Runner)
+    runs-on: [self-hosted, Linux, X64, dev02]
+    environment: dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # BACKEND_ENV secret must be set in GitHub repo/environment secrets.
+      # Value: the full contents of backend/.env
+      - name: Write .env
+        run: echo "${{ secrets.BACKEND_ENV }}" > backend/.env
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Deploy
+        run: docker compose up -d --remove-orphans
+
+      - name: Health check
+        run: |
+          echo "Waiting for stack to be healthy..."
+          for i in $(seq 1 12); do
+            if curl -sf http://localhost:3000/api/health > /dev/null; then
+              echo "Stack healthy."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Health check failed — dumping logs"
+          docker compose logs --tail=50
+          exit 1

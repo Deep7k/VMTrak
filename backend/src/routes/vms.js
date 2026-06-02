@@ -1,6 +1,8 @@
 'use strict';
 
 const express = require('express');
+const net     = require('net');
+const { parse: parseCsv } = require('csv-parse/sync');
 const { db } = require('../db/database');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { writeAudit, getIp } = require('../middleware/audit');
@@ -16,7 +18,7 @@ const SORTABLE = new Set([
 ]);
 
 // ── GET /api/vms ──────────────────────────────────────────────────────────────
-router.get('/', authenticate, (req, res, next) => {
+router.get('/', authenticate, requireRole('read'), (req, res, next) => {
   try {
     const q = validate(vmQuerySchema, req.query);
 
@@ -29,9 +31,10 @@ router.get('/', authenticate, (req, res, next) => {
       params.push(s, s, s, s);
     }
     if (q.environment) { where.push('environment = ?'); params.push(q.environment); }
-    if (q.status) { where.push('status = ?'); params.push(q.status); }
+    if (q.status)      { where.push('status = ?');      params.push(q.status); }
     if (q.power_state) { where.push('power_state = ?'); params.push(q.power_state); }
-    if (q.department) { where.push('department = ?'); params.push(q.department); }
+    if (q.department)  { where.push('department = ?');  params.push(q.department); }
+    if (q.hypervisor)  { where.push('hypervisor = ?');  params.push(q.hypervisor); }
     if (q.expiring_in != null) {
       where.push("expiry_date IS NOT NULL AND expiry_date <= date('now', ? || ' days')");
       params.push(`+${q.expiring_in}`);
@@ -56,8 +59,192 @@ router.get('/', authenticate, (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── GET /api/vms/export  (CSV) ────────────────────────────────────────────────
+router.get('/export', authenticate, requireRole('readwrite'), (req, res, next) => {
+  try {
+    const rows = db.prepare("SELECT * FROM vms WHERE status != 'decommissioned'").all();
+
+    const cols = [
+      'vm_name', 'vm_tag', 'description', 'hypervisor', 'cluster', 'datacenter',
+      'os_type', 'os_version', 'hostname', 'ip_address', 'vlan', 'mac_address',
+      'vcpu', 'ram_gb', 'disk_gb', 'power_state', 'environment', 'status',
+      'owner', 'department', 'application', 'expiry_date', 'notes',
+    ];
+
+    const escape = v => {
+      if (v == null) return '';
+      let s = String(v);
+      // Neutralise CSV formula injection (Excel/LibreOffice interpret leading =+-@)
+      if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    const csv = [
+      cols.join(','),
+      ...rows.map(r => cols.map(c => escape(r[c])).join(',')),
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="vmtrak-export.csv"');
+    res.send(csv);
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/vms/hypervisors ──────────────────────────────────────────────────
+router.get('/hypervisors', authenticate, requireRole('read'), (req, res, next) => {
+  try {
+    const rows = db.prepare(
+      "SELECT DISTINCT hypervisor FROM vms WHERE hypervisor IS NOT NULL AND hypervisor != '' ORDER BY hypervisor"
+    ).all();
+    res.json(rows.map(r => r.hypervisor));
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/vms/reachability ─────────────────────────────────────────────────
+// Checks TCP connectivity for a list of VM IDs.
+// Port 22 for Linux, 3389 for everything else.
+router.get('/reachability', authenticate, requireRole('read'), async (req, res, next) => {
+  try {
+    const ids = (req.query.ids || '').split(',').map(Number).filter(Boolean);
+    if (ids.length === 0) return res.json({});
+    if (ids.length > 50) return res.status(400).json({ error: 'Max 50 IDs per request' });
+
+    const placeholders = ids.map(() => '?').join(',');
+    const vms = db.prepare(
+      `SELECT id, ip_address, os_type FROM vms WHERE id IN (${placeholders})`
+    ).all(...ids);
+
+    const checkPort = (ip, port) => new Promise(resolve => {
+      const socket = new net.Socket();
+      let done = false;
+      const finish = status => { if (!done) { done = true; socket.destroy(); resolve(status); } };
+      socket.setTimeout(2000);
+      socket.connect(port, ip, () => finish('online'));
+      socket.on('error', () => finish('offline'));
+      socket.on('timeout', () => finish('offline'));
+    });
+
+    const results = await Promise.all(
+      vms.map(async vm => {
+        if (!vm.ip_address) return [String(vm.id), 'unknown'];
+        const port = vm.os_type === 'Linux' ? 22 : 3389;
+        const status = await checkPort(vm.ip_address, port);
+        return [String(vm.id), status];
+      })
+    );
+
+    res.json(Object.fromEntries(results));
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/vms/import  [admin] ─────────────────────────────────────────────
+router.post(
+  '/import',
+  authenticate,
+  requireRole('readwrite'),
+  express.text({ type: ['text/csv', 'text/plain', 'application/octet-stream'] }),
+  (req, res, next) => {
+    try {
+      const body = typeof req.body === 'string' ? req.body : '';
+      if (!body.trim()) return res.status(400).json({ error: 'Request body is empty' });
+
+      let rows;
+      try {
+        rows = parseCsv(body, { columns: true, skip_empty_lines: true, trim: true });
+      } catch {
+        return res.status(400).json({ error: 'Invalid CSV format' });
+      }
+
+      if (rows.length === 0) return res.status(400).json({ error: 'CSV contains no data rows' });
+
+      const NUMERIC = ['vcpu', 'ram_gb', 'disk_gb'];
+      const errors  = [];
+      let imported  = 0;
+
+      const insert = db.prepare(`
+        INSERT INTO vms (
+          vm_name, vm_tag, description, hypervisor, cluster, datacenter,
+          os_type, os_version, hostname, ip_address, vlan, mac_address,
+          vcpu, ram_gb, disk_gb, power_state, environment, status,
+          owner, department, application, expiry_date, notes,
+          created_at, updated_at, created_by, updated_by
+        ) VALUES (
+          @vm_name, @vm_tag, @description, @hypervisor, @cluster, @datacenter,
+          @os_type, @os_version, @hostname, @ip_address, @vlan, @mac_address,
+          @vcpu, @ram_gb, @disk_gb, @power_state, @environment, @status,
+          @owner, @department, @application, @expiry_date, @notes,
+          @now, @now, @user_id, @user_id
+        )
+      `);
+
+      const runImport = db.transaction(() => {
+        const now = new Date().toISOString();
+
+        rows.forEach((rawRow, idx) => {
+          const rowNum = idx + 2; // 1-based + header
+
+          // Normalise keys to lowercase, coerce empty strings → undefined
+          const row = {};
+          for (const [k, v] of Object.entries(rawRow)) {
+            const key = k.toLowerCase().trim();
+            row[key] = v === '' ? undefined : v;
+          }
+          for (const f of NUMERIC) {
+            if (row[f] != null) row[f] = Number(row[f]);
+          }
+
+          const result = vmSchema.safeParse(row);
+          if (!result.success) {
+            const fieldErrors = result.error.flatten().fieldErrors;
+            const reason = Object.entries(fieldErrors)
+              .map(([f, e]) => `${f}: ${e[0]}`).join('; ');
+            errors.push({ row: rowNum, vm_name: rawRow.vm_name || '', reason });
+            return;
+          }
+
+          const d = result.data;
+          try {
+            insert.run({
+              vm_name: d.vm_name, vm_tag: d.vm_tag ?? null,
+              description: d.description ?? null, hypervisor: d.hypervisor ?? null,
+              cluster: d.cluster ?? null, datacenter: d.datacenter ?? null,
+              os_type: d.os_type ?? null, os_version: d.os_version ?? null,
+              hostname: d.hostname ?? null, ip_address: d.ip_address ?? null,
+              vlan: d.vlan ?? null, mac_address: d.mac_address ?? null,
+              vcpu: d.vcpu ?? null, ram_gb: d.ram_gb ?? null, disk_gb: d.disk_gb ?? null,
+              power_state: d.power_state ?? 'unknown',
+              environment: d.environment ?? null,
+              status: d.status ?? 'active',
+              owner: d.owner ?? null, department: d.department ?? null,
+              application: d.application ?? null, expiry_date: d.expiry_date ?? null,
+              notes: d.notes ?? null,
+              now, user_id: req.user.id,
+            });
+            imported++;
+          } catch (e) {
+            const reason = e.message?.includes('UNIQUE') ? 'VM name already exists' : e.message;
+            errors.push({ row: rowNum, vm_name: d.vm_name, reason });
+          }
+        });
+      });
+
+      runImport();
+
+      writeAudit({
+        user_id: req.user.id, username: req.user.username,
+        action: 'vm.import', entity_type: 'vm',
+        detail: { imported, skipped: errors.length, total: rows.length },
+        ip_address: getIp(req),
+      });
+
+      res.json({ imported, skipped: errors.length, errors });
+    } catch (err) { next(err); }
+  }
+);
+
 // ── GET /api/vms/:id ──────────────────────────────────────────────────────────
-router.get('/:id', authenticate, (req, res, next) => {
+router.get('/:id', authenticate, requireRole('read'), (req, res, next) => {
   try {
     const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
@@ -67,7 +254,7 @@ router.get('/:id', authenticate, (req, res, next) => {
 });
 
 // ── POST /api/vms  [admin] ────────────────────────────────────────────────────
-router.post('/', authenticate, requireRole('admin'), (req, res, next) => {
+router.post('/', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const data = validate(vmSchema, req.body);
     const now = new Date().toISOString();
@@ -129,7 +316,7 @@ router.post('/', authenticate, requireRole('admin'), (req, res, next) => {
 });
 
 // ── PUT /api/vms/:id  [admin] ─────────────────────────────────────────────────
-router.put('/:id', authenticate, requireRole('admin'), (req, res, next) => {
+router.put('/:id', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const existing = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'VM not found' });
@@ -154,7 +341,7 @@ router.put('/:id', authenticate, requireRole('admin'), (req, res, next) => {
 });
 
 // ── DELETE /api/vms/:id  [admin] ──────────────────────────────────────────────
-router.delete('/:id', authenticate, requireRole('admin'), (req, res, next) => {
+router.delete('/:id', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
@@ -166,7 +353,7 @@ router.delete('/:id', authenticate, requireRole('admin'), (req, res, next) => {
 });
 
 // ── GET /api/vms/:id/rdp ──────────────────────────────────────────────────────
-router.get('/:id/rdp', authenticate, (req, res, next) => {
+router.get('/:id/rdp', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
     const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
@@ -180,36 +367,6 @@ router.get('/:id/rdp', authenticate, (req, res, next) => {
     res.setHeader('Content-Type', 'application/x-rdp');
     res.setHeader('Content-Disposition', `attachment; filename="${vm.vm_name}.rdp"`);
     res.send(content);
-  } catch (err) { next(err); }
-});
-
-// ── GET /api/vms/export  (CSV) ────────────────────────────────────────────────
-router.get('/export', authenticate, (req, res, next) => {
-  try {
-    const rows = db.prepare("SELECT * FROM vms WHERE status != 'decommissioned'").all();
-
-    const cols = [
-      'vm_name', 'vm_tag', 'description', 'hypervisor', 'cluster', 'datacenter',
-      'os_type', 'os_version', 'hostname', 'ip_address', 'vlan', 'mac_address',
-      'vcpu', 'ram_gb', 'disk_gb', 'power_state', 'environment', 'status',
-      'owner', 'department', 'application', 'expiry_date', 'notes',
-    ];
-
-    const escape = v => {
-      if (v == null) return '';
-      const s = String(v);
-      return s.includes(',') || s.includes('"') || s.includes('\n')
-        ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-
-    const csv = [
-      cols.join(','),
-      ...rows.map(r => cols.map(c => escape(r[c])).join(',')),
-    ].join('\n');
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="vmtrak-export.csv"');
-    res.send(csv);
   } catch (err) { next(err); }
 });
 
