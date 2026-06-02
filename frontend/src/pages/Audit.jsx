@@ -1,6 +1,21 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../api/client';
 
+// SQLite stores datetime('now') as UTC without a timezone suffix.
+// Append 'Z' so the browser parses it as UTC, then formats in local timezone.
+const fmtTs = (ts) => {
+  if (!ts) return '—';
+  try {
+    return new Date(ts.replace(' ', 'T') + 'Z').toLocaleString('en-GB', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+    }).replace(',', '');
+  } catch {
+    return ts.slice(0, 19);
+  }
+};
+
 const ACTION_OPTIONS = [
   { value: '', label: 'All Actions' },
   { value: 'vm.create',          label: 'vm.create' },
@@ -92,7 +107,7 @@ function AuditRow({ entry }) {
         onClick={() => hasDetail && setExpanded(e => !e)}
       >
         <td className="font-mono text-xs whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          {entry.created_at?.replace('T', ' ').slice(0, 19)}
+          {fmtTs(entry.created_at)}
         </td>
         <td className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>{entry.username || '—'}</td>
         <td><ActionBadge action={entry.action} /></td>

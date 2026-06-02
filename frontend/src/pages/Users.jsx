@@ -359,7 +359,9 @@ export default function UsersPage() {
                       </span>
                     </div>
                   </td>
-                  <td className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{u.created_at?.slice(0, 10)}</td>
+                  <td className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    {u.created_at ? new Date(u.created_at.replace(' ', 'T') + 'Z').toLocaleDateString('en-GB') : '—'}
+                  </td>
                   <td>
                     <div className="flex gap-2 flex-wrap">
                       <button onClick={() => setEditTarget(u)} className="btn-secondary text-xs px-2 py-1">Edit</button>
