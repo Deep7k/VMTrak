@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import Login        from './pages/Login';
 import SetupPage    from './pages/SetupPage';
+import AuthCallback from './pages/AuthCallback';
 import AppShell     from './components/AppShell';
 import VMList       from './pages/VMList';
 import VMDetail     from './pages/VMDetail';
@@ -14,6 +15,10 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
+  },
+  {
+    path: '/auth/callback',
+    element: <AuthCallback />,
   },
   {
     path: '/setup',
