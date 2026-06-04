@@ -242,12 +242,12 @@ export default function HypervisorsPage() {
   };
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: '1100px' }}>
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#e8e8e8', margin: 0 }}>Hypervisors</h1>
-          <p className="font-mono text-xs text-slate-500 mt-1">{hypervisors.length} registered</p>
+          <p className="font-mono text-sm mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Total: {hypervisors.length} hypervisors</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button onClick={refreshReach} title="Refresh connectivity"
@@ -263,7 +263,7 @@ export default function HypervisorsPage() {
       {error && <p className="font-mono text-sm text-red-400 mb-4">{error}</p>}
 
       {/* Table */}
-      <div className="card-base" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card-base overflow-x-auto">
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
