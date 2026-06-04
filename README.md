@@ -2,7 +2,7 @@
 
 Self-hosted VM inventory and credential management for IT infrastructure teams.
 
-**Version: v1.0.0**
+**Version: v1.2.0**
 
 ---
 
