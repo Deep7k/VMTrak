@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const net     = require('net');
 const { db } = require('../db/database');
 const { authenticate, requireRole } = require('../middleware/auth');
 const { writeAudit, getIp } = require('../middleware/audit');
@@ -8,12 +9,57 @@ const { createHypervisorSchema, updateHypervisorSchema, validate } = require('..
 
 const router = express.Router();
 
+// Port to probe per hypervisor type
+function probePort(type) {
+  switch (type) {
+    case 'VMware vSphere': return 443;
+    case 'Proxmox':        return 8006;
+    case 'Hyper-V':        return 5985;
+    case 'KVM':            return 22;
+    default:               return 22;
+  }
+}
+
+// ── GET /api/hypervisors/reachability?ids=1,2 ─────────────────────────────────
+router.get('/reachability', authenticate, requireRole('read'), async (req, res, next) => {
+  try {
+    const ids = (req.query.ids || '').split(',').map(Number).filter(Boolean);
+    if (ids.length === 0) return res.json({});
+    if (ids.length > 50) return res.status(400).json({ error: 'Max 50 IDs per request' });
+
+    const placeholders = ids.map(() => '?').join(',');
+    const hypervisors = db.prepare(
+      `SELECT id, hostname, type FROM hypervisors WHERE id IN (${placeholders})`
+    ).all(...ids);
+
+    const checkPort = (host, port) => new Promise(resolve => {
+      const socket = new net.Socket();
+      let done = false;
+      const finish = status => { if (!done) { done = true; socket.destroy(); resolve(status); } };
+      socket.setTimeout(2000);
+      socket.connect(port, host, () => finish('online'));
+      socket.on('error', () => finish('offline'));
+      socket.on('timeout', () => finish('offline'));
+    });
+
+    const results = await Promise.all(
+      hypervisors.map(async hv => {
+        if (!hv.hostname) return [String(hv.id), 'unknown'];
+        const port   = probePort(hv.type);
+        const status = await checkPort(hv.hostname, port);
+        return [String(hv.id), status];
+      })
+    );
+
+    res.json(Object.fromEntries(results));
+  } catch (err) { next(err); }
+});
+
 // ── GET /api/hypervisors ──────────────────────────────────────────────────────
 router.get('/', authenticate, requireRole('read'), (req, res, next) => {
   try {
     const rows = db.prepare(`
-      SELECT h.*,
-        COUNT(v.id) AS vm_count
+      SELECT h.*, COUNT(v.id) AS vm_count
       FROM hypervisors h
       LEFT JOIN vms v ON v.hypervisor_id = h.id
       GROUP BY h.id
@@ -39,13 +85,15 @@ router.post('/', authenticate, requireRole('readwrite'), (req, res, next) => {
     const now  = new Date().toISOString();
 
     const result = db.prepare(`
-      INSERT INTO hypervisors (name, hostname, type, description, created_at, updated_at)
-      VALUES (@name, @hostname, @type, @description, @now, @now)
+      INSERT INTO hypervisors (name, hostname, type, description, status, environment, created_at, updated_at)
+      VALUES (@name, @hostname, @type, @description, @status, @environment, @now, @now)
     `).run({
       name:        data.name,
       hostname:    data.hostname    ?? null,
       type:        data.type        ?? null,
       description: data.description ?? null,
+      status:      data.status      ?? 'active',
+      environment: data.environment ?? null,
       now,
     });
 

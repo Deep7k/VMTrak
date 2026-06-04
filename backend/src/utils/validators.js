@@ -127,6 +127,8 @@ const createHypervisorSchema = z.object({
   hostname:    z.string().max(253).optional().nullable(),
   type:        z.enum(HYPERVISOR_TYPES).optional().nullable(),
   description: z.string().max(1024).optional().nullable(),
+  status:      z.enum(['active', 'maintenance', 'decommissioned']).default('active'),
+  environment: z.enum(['production', 'staging', 'development', 'test']).optional().nullable(),
 });
 
 const updateHypervisorSchema = createHypervisorSchema.partial();
