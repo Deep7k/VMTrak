@@ -10,12 +10,13 @@ const { initDb }   = require('./db/database');
 const logger       = require('./utils/logger');
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-const authRoutes      = require('./routes/auth');
-const vmRoutes        = require('./routes/vms');
-const credRoutes      = require('./routes/credentials');
-const userRoutes      = require('./routes/users');
-const auditRoutes     = require('./routes/audit');
-const dashboardRoutes = require('./routes/dashboard');
+const authRoutes        = require('./routes/auth');
+const vmRoutes          = require('./routes/vms');
+const credRoutes        = require('./routes/credentials');
+const userRoutes        = require('./routes/users');
+const auditRoutes       = require('./routes/audit');
+const dashboardRoutes   = require('./routes/dashboard');
+const hypervisorRoutes  = require('./routes/hypervisors');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -39,12 +40,13 @@ app.get('/api/health', (_req, res) => {
 });
 
 // ── API routes ────────────────────────────────────────────────────────────────
-app.use('/api/auth',      authRoutes);
-app.use('/api/vms',       vmRoutes);
-app.use('/api/vms',       credRoutes);   // /api/vms/:id/credentials/*
-app.use('/api/users',     userRoutes);
-app.use('/api/audit',     auditRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/auth',        authRoutes);
+app.use('/api/vms',         vmRoutes);
+app.use('/api/vms',         credRoutes);         // /api/vms/:id/credentials/*
+app.use('/api/users',       userRoutes);
+app.use('/api/audit',       auditRoutes);
+app.use('/api/dashboard',   dashboardRoutes);
+app.use('/api/hypervisors', hypervisorRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {

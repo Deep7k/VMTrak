@@ -40,7 +40,7 @@ const vmSchema = z.object({
   description: z.string().max(1024).optional().nullable(),
 
   // Infrastructure
-  hypervisor:  z.string().max(128).optional().nullable(),
+  hypervisor_id: z.coerce.number().int().positive().optional().nullable(),
   cluster:     z.string().max(128).optional().nullable(),
   datacenter:  z.string().max(128).optional().nullable(),
 
@@ -110,14 +110,26 @@ const vmQuerySchema = z.object({
   environment: z.enum(['production', 'staging', 'development', 'test']).optional(),
   status:      z.enum(['active', 'decommissioned', 'maintenance']).optional(),
   power_state: z.enum(['on', 'off', 'suspended', 'unknown']).optional(),
-  department:  z.string().optional(),
-  hypervisor:  z.string().optional(),
-  expiring_in: z.coerce.number().int().min(0).optional(),
+  department:   z.string().optional(),
+  hypervisor_id: z.coerce.number().int().optional(),
+  expiring_in:  z.coerce.number().int().min(0).optional(),
   page:        z.coerce.number().int().min(1).default(1),
   limit:       z.coerce.number().int().min(1).max(200).default(50),
   sort:        z.string().default('created_at'),
   order:       z.enum(['asc', 'desc']).default('desc'),
 });
+
+// ── Hypervisors ───────────────────────────────────────────────────────────────
+const HYPERVISOR_TYPES = ['VMware vSphere', 'Proxmox', 'Hyper-V', 'KVM', 'Other'];
+
+const createHypervisorSchema = z.object({
+  name:        z.string().min(1).max(128),
+  hostname:    z.string().max(253).optional().nullable(),
+  type:        z.enum(HYPERVISOR_TYPES).optional().nullable(),
+  description: z.string().max(1024).optional().nullable(),
+});
+
+const updateHypervisorSchema = createHypervisorSchema.partial();
 
 // ── Validate helper ───────────────────────────────────────────────────────────
 /**
@@ -146,5 +158,7 @@ module.exports = {
   updateCredentialSchema,
   auditQuerySchema,
   vmQuerySchema,
+  createHypervisorSchema,
+  updateHypervisorSchema,
   validate,
 };

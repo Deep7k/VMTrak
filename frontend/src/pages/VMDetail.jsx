@@ -156,9 +156,9 @@ export default function VMDetail() {
                     <Field label="Disk (GB)">
                         <p className="text-slate-100 font-mono">{vm.disk_gb || '—'}</p>
                     </Field>
-                    {vm.hypervisor && (
+                    {vm.hypervisor_name && (
                         <Field label="Hypervisor Host">
-                            <p className="text-slate-100 font-mono">{vm.hypervisor}</p>
+                            <p className="text-slate-100 font-mono">{vm.hypervisor_name}</p>
                         </Field>
                     )}
                     {vm.expiry_date && (

@@ -33,8 +33,8 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
     if (q.environment) { where.push('environment = ?'); params.push(q.environment); }
     if (q.status)      { where.push('status = ?');      params.push(q.status); }
     if (q.power_state) { where.push('power_state = ?'); params.push(q.power_state); }
-    if (q.department)  { where.push('department = ?');  params.push(q.department); }
-    if (q.hypervisor)  { where.push('hypervisor = ?');  params.push(q.hypervisor); }
+    if (q.department)    { where.push('vms.department = ?');    params.push(q.department); }
+    if (q.hypervisor_id) { where.push('vms.hypervisor_id = ?'); params.push(q.hypervisor_id); }
     if (q.expiring_in != null) {
       where.push("expiry_date IS NOT NULL AND expiry_date <= date('now', ? || ' days')");
       params.push(`+${q.expiring_in}`);
@@ -45,14 +45,18 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
     const order = q.order === 'asc' ? 'ASC' : 'DESC';
     const offset = (q.page - 1) * q.limit;
 
-    const total = db.prepare(`SELECT COUNT(*) as n FROM vms ${whereClause}`).get(...params).n;
+    const total = db.prepare(
+      `SELECT COUNT(*) as n FROM vms LEFT JOIN hypervisors h ON vms.hypervisor_id = h.id ${whereClause}`
+    ).get(...params).n;
     const rows = db.prepare(
-      `SELECT vms.*, (
+      `SELECT vms.*, h.name AS hypervisor_name, (
          SELECT username FROM vm_credentials
          WHERE vm_id = vms.id AND account_type = 'primary'
          LIMIT 1
        ) as primary_username
-       FROM vms ${whereClause} ORDER BY ${sortCol} ${order} LIMIT ? OFFSET ?`
+       FROM vms
+       LEFT JOIN hypervisors h ON vms.hypervisor_id = h.id
+       ${whereClause} ORDER BY vms.${sortCol} ${order} LIMIT ? OFFSET ?`
     ).all(...params, q.limit, offset);
 
     res.json({ data: rows, total, page: q.page, limit: q.limit });
@@ -91,13 +95,11 @@ router.get('/export', authenticate, requireRole('readwrite'), (req, res, next) =
   } catch (err) { next(err); }
 });
 
-// ── GET /api/vms/hypervisors ──────────────────────────────────────────────────
+// ── GET /api/vms/hypervisors — kept for backward compat, now reads hypervisors table
 router.get('/hypervisors', authenticate, requireRole('read'), (req, res, next) => {
   try {
-    const rows = db.prepare(
-      "SELECT DISTINCT hypervisor FROM vms WHERE hypervisor IS NOT NULL AND hypervisor != '' ORDER BY hypervisor"
-    ).all();
-    res.json(rows.map(r => r.hypervisor));
+    const rows = db.prepare('SELECT id, name FROM hypervisors ORDER BY name').all();
+    res.json(rows);
   } catch (err) { next(err); }
 });
 
@@ -184,13 +186,13 @@ router.post(
 
       const insert = db.prepare(`
         INSERT INTO vms (
-          vm_name, vm_tag, description, hypervisor, cluster, datacenter,
+          vm_name, vm_tag, description, hypervisor_id, cluster, datacenter,
           os_type, os_version, hostname, ip_address, vlan, mac_address,
           vcpu, ram_gb, disk_gb, power_state, environment, status,
           owner, department, application, expiry_date, notes,
           created_at, updated_at, created_by, updated_by
         ) VALUES (
-          @vm_name, @vm_tag, @description, @hypervisor, @cluster, @datacenter,
+          @vm_name, @vm_tag, @description, @hypervisor_id, @cluster, @datacenter,
           @os_type, @os_version, @hostname, @ip_address, @vlan, @mac_address,
           @vcpu, @ram_gb, @disk_gb, @power_state, @environment, @status,
           @owner, @department, @application, @expiry_date, @notes,
@@ -232,6 +234,17 @@ router.post(
             }
           }
 
+          // Resolve hypervisor text → hypervisor_id (create if not exists)
+          if (row.hypervisor) {
+            let hv = db.prepare('SELECT id FROM hypervisors WHERE LOWER(name) = LOWER(?)').get(row.hypervisor);
+            if (!hv) {
+              const r = db.prepare('INSERT INTO hypervisors (name) VALUES (?)').run(row.hypervisor);
+              hv = { id: r.lastInsertRowid };
+            }
+            row.hypervisor_id = hv.id;
+          }
+          delete row.hypervisor;
+
           const result = vmSchema.safeParse(row);
           if (!result.success) {
             errors.push({ row: rowNum, vm_name: row.vm_name || '', reason: formatZodErrors(result.error) });
@@ -242,7 +255,8 @@ router.post(
           try {
             insert.run({
               vm_name: d.vm_name, vm_tag: d.vm_tag ?? null,
-              description: d.description ?? null, hypervisor: d.hypervisor ?? null,
+              description:   d.description   ?? null,
+              hypervisor_id: d.hypervisor_id ?? null,
               cluster: d.cluster ?? null, datacenter: d.datacenter ?? null,
               os_type: d.os_type ?? null, os_version: d.os_version ?? null,
               hostname: d.hostname ?? null, ip_address: d.ip_address ?? null,
@@ -281,7 +295,11 @@ router.post(
 // ── GET /api/vms/:id ──────────────────────────────────────────────────────────
 router.get('/:id', authenticate, requireRole('read'), (req, res, next) => {
   try {
-    const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
+    const vm = db.prepare(`
+      SELECT vms.*, h.name AS hypervisor_name
+      FROM vms LEFT JOIN hypervisors h ON vms.hypervisor_id = h.id
+      WHERE vms.id = ?
+    `).get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
     writeAudit({ user_id: req.user.id, username: req.user.username, action: 'vm.view', entity_type: 'vm', entity_id: vm.id, entity_name: vm.vm_name, ip_address: getIp(req) });
     res.json(vm);
@@ -299,7 +317,7 @@ router.post('/', authenticate, requireRole('readwrite'), (req, res, next) => {
       vm_name: data.vm_name,
       vm_tag: data.vm_tag ?? null,
       description: data.description ?? null,
-      hypervisor: data.hypervisor ?? null,
+      hypervisor_id: data.hypervisor_id ?? null,
       cluster: data.cluster ?? null,
       datacenter: data.datacenter ?? null,
       os_type: data.os_type ?? null,
@@ -325,13 +343,13 @@ router.post('/', authenticate, requireRole('readwrite'), (req, res, next) => {
 
     const result = db.prepare(`
       INSERT INTO vms (
-        vm_name, vm_tag, description, hypervisor, cluster, datacenter,
+        vm_name, vm_tag, description, hypervisor_id, cluster, datacenter,
         os_type, os_version, hostname, ip_address, vlan, mac_address,
         vcpu, ram_gb, disk_gb, power_state, environment, status,
         owner, department, application, expiry_date, notes,
         created_at, updated_at, created_by, updated_by
       ) VALUES (
-        @vm_name, @vm_tag, @description, @hypervisor, @cluster, @datacenter,
+        @vm_name, @vm_tag, @description, @hypervisor_id, @cluster, @datacenter,
         @os_type, @os_version, @hostname, @ip_address, @vlan, @mac_address,
         @vcpu, @ram_gb, @disk_gb, @power_state, @environment, @status,
         @owner, @department, @application, @expiry_date, @notes,

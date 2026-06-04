@@ -262,8 +262,8 @@ export default function VMList() {
   const [showImport, setShowImport] = useState(false);
   const [reachability, setReachability] = useState({});
   const [reachChecking, setReachChecking] = useState(false);
-  const [hypervisor, setHypervisor] = useState('');
-  const [hypervisors, setHypervisors] = useState([]);
+  const [hypervisorId, setHypervisorId] = useState('');
+  const [hypervisors, setHypervisors]   = useState([]);
 
   const fetchReachability = useCallback(async (vmList) => {
     if (!vmList.length) return;
@@ -309,7 +309,7 @@ export default function VMList() {
       cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{info.getValue() || '—'}</div>,
     },
     {
-      accessorKey: 'hypervisor',
+      accessorKey: 'hypervisor_name',
       header: 'Hypervisor',
       cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{info.getValue() || '—'}</div>,
     },
@@ -350,7 +350,7 @@ export default function VMList() {
 
   useEffect(() => {
     loadVMs();
-  }, [search, environment, status, hypervisor]);
+  }, [search, environment, status, hypervisorId]);
 
   const loadVMs = async () => {
     setIsLoading(true);
@@ -361,7 +361,7 @@ export default function VMList() {
         ...(search && { search }),
         ...(environment && { environment }),
         ...(status && { status }),
-        ...(hypervisor && { hypervisor }),
+        ...(hypervisorId && { hypervisor_id: hypervisorId }),
       });
       const { data } = await api.get(`/vms?${params}`);
       setVms(data.data);
@@ -436,16 +436,16 @@ export default function VMList() {
         </div>
         <div>
           <label className="block font-mono text-xs text-slate-400 mb-2">Hypervisor</label>
-          <select value={hypervisor} onChange={(e) => setHypervisor(e.target.value)} className="input-base">
+          <select value={hypervisorId} onChange={(e) => setHypervisorId(e.target.value)} className="input-base">
             <option value="">All</option>
             {hypervisors.map(h => (
-              <option key={h} value={h}>{h}</option>
+              <option key={h.id} value={h.id}>{h.name}</option>
             ))}
           </select>
         </div>
         <div className="flex items-end">
           <button
-            onClick={() => { setSearch(''); setEnvironment(''); setStatus('active'); setHypervisor(''); }}
+            onClick={() => { setSearch(''); setEnvironment(''); setStatus('active'); setHypervisorId(''); }}
             className="btn-secondary w-full"
           >
             Reset

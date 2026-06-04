@@ -141,7 +141,7 @@ export default function VMForm() {
         ip_address: '',
         os_type: '',
         os_version: '',
-        hypervisor: '',
+        hypervisor_id: null,
         cluster: '',
         datacenter: '',
         vcpu: '',
@@ -156,12 +156,14 @@ export default function VMForm() {
         notes: '',
     });
     const [hasExpiry, setHasExpiry] = useState(false);
+    const [hypervisors, setHypervisors] = useState([]);
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
+        api.get('/hypervisors').then(r => setHypervisors(r.data)).catch(() => {});
         if (isEditing) {
             loadVM();
         }
@@ -294,8 +296,13 @@ export default function VMForm() {
                     <h2 className="text-sm font-mono font-bold text-slate-300 uppercase mb-4">Infrastructure</h2>
                     <div>
                         <label className="block font-mono text-xs text-slate-400 mb-2">Hypervisor</label>
-                        <input type="text" name="hypervisor" value={formData.hypervisor || ''} onChange={handleChange}
-                            className="input-base" placeholder="e.g. esxi01.indishtech.lan" disabled={isSaving} />
+                        <select name="hypervisor_id" value={formData.hypervisor_id ?? ''} onChange={handleChange}
+                            className="input-base" disabled={isSaving}>
+                            <option value="">— None —</option>
+                            {hypervisors.map(h => (
+                                <option key={h.id} value={h.id}>{h.name}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
