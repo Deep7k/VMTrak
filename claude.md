@@ -3,6 +3,15 @@
 ## What this is
 Self-hosted VM inventory app replacing Excel tracking. Node.js/Express backend, React/Vite frontend, SQLite via better-sqlite3, Dockerized for production.
 
+## Documentation
+In-depth docs live in `docs/`:
+- `docs/architecture.md` — container layout, request flow, CI/CD, key file paths
+- `docs/auth.md` — JWT + Entra SSO auth, token lifecycle, role system
+- `docs/mail.md` — notification scheduler, email template, SMTP config
+- `docs/ui.md` — design system, color palette, typography, component classes
+- `docs/security.md` — full threat model, encryption, audit logging
+- `docs/roadmap.md` — completed v1.0 features and v2 scope
+
 ## Stack
 - **Backend:** Express, better-sqlite3 (sync — NO async/await on DB calls), zod, winston, node-cron, nodemailer, @azure/msal-node
 - **Frontend:** React 18, Vite, TailwindCSS, TanStack Table v8, axios, zustand (auth store only)
@@ -65,9 +74,90 @@ Migration runner tolerates `duplicate column` errors so a crashed partial migrat
 ## Dev servers / deployment
 - **Do NOT** run `npm run dev` or `docker compose up/down` locally — DNS/SSL point to itappsdev02
 - Push to `dev` branch → GitHub Actions builds and deploys on itappsdev02
-- Test via curl or browser at `https://vmtrak-dev.internal.indishtech.in/`
-- Credentials and env vars in `.claude/test-creds.md` (gitignored)
+- Test credentials and env vars are in `.claude/test-creds.md` (gitignored)
 - Test mail: `bash tests/test-mail.sh`
+
+## Testing via curl
+
+Test credentials are in `.claude/test-creds.md`. Read that file first for the current username/password and base URL.
+
+### 1. Get an access token
+```bash
+TOKEN=$(curl -s -X POST https://vmtrak-dev.internal.indishtech.in/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"<password from .claude/test-creds.md>"}' \
+  | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+echo $TOKEN
+```
+
+### 2. Health check (no auth)
+```bash
+curl -s https://vmtrak-dev.internal.indishtech.in/api/health | jq
+```
+
+### 3. List VMs
+```bash
+curl -s https://vmtrak-dev.internal.indishtech.in/api/vms \
+  -H "Authorization: Bearer $TOKEN" | jq '.data | length'
+```
+
+### 4. Get a specific VM
+```bash
+curl -s https://vmtrak-dev.internal.indishtech.in/api/vms/1 \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+### 5. Create a VM (readwrite+)
+```bash
+curl -s -X POST https://vmtrak-dev.internal.indishtech.in/api/vms \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "vm_name": "test-vm-curl",
+    "ip_address": "10.0.0.99",
+    "os_type": "Linux",
+    "environment": "test",
+    "status": "active",
+    "power_state": "on"
+  }' | jq
+```
+
+### 6. Delete a VM (readwrite+)
+```bash
+curl -s -X DELETE https://vmtrak-dev.internal.indishtech.in/api/vms/<id> \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+### 7. Trigger test notifications (admin)
+```bash
+curl -s -X POST https://vmtrak-dev.internal.indishtech.in/api/dashboard/test-notifications \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+### 8. List users (admin)
+```bash
+curl -s https://vmtrak-dev.internal.indishtech.in/api/users \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+### 9. Check audit log (admin)
+```bash
+curl -s "https://vmtrak-dev.internal.indishtech.in/api/audit?limit=10" \
+  -H "Authorization: Bearer $TOKEN" | jq '.data[]|{action,username,created_at}'
+```
+
+### 10. Reveal a credential (readwrite+)
+```bash
+curl -s https://vmtrak-dev.internal.indishtech.in/api/vms/<vm_id>/credentials/<cred_id>/reveal \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+### Notes on curl testing
+- The `-c cookies.txt -b cookies.txt` flags are needed if testing refresh token flow (HttpOnly cookie)
+- All write endpoints expect `Content-Type: application/json`
+- 401 means token expired — re-run the login command to get a fresh token
+- 403 means insufficient role for that endpoint
+- Add `-v` to any curl command to see full request/response headers for debugging
 
 ## Data persistence
 - Docker named volumes (`vm-data`, `vm-logs`) — survives deploys

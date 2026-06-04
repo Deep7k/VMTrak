@@ -77,3 +77,4 @@ jobs:
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
+          build-args: VITE_APP_VERSION=${{ github.ref_name }}
