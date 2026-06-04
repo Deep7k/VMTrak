@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
+import Autocomplete from '../components/Autocomplete';
 
 function CredentialsSubCard({ vmId }) {
     const [credentials, setCredentials] = useState([]);
@@ -157,6 +158,7 @@ export default function VMForm() {
     });
     const [hasExpiry, setHasExpiry] = useState(false);
     const [hypervisors, setHypervisors] = useState([]);
+    const [suggestions, setSuggestions] = useState({ os_version: [], owner: [], department: [], application: [] });
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -164,6 +166,11 @@ export default function VMForm() {
 
     useEffect(() => {
         api.get('/hypervisors').then(r => setHypervisors(r.data)).catch(() => {});
+        ['os_version', 'owner', 'department', 'application'].forEach(field => {
+            api.get(`/vms/field-values?field=${field}`)
+                .then(r => setSuggestions(prev => ({ ...prev, [field]: r.data })))
+                .catch(() => {});
+        });
         if (isEditing) {
             loadVM();
         }
@@ -321,12 +328,12 @@ export default function VMForm() {
                         </div>
                         <div>
                             <label className="block font-mono text-xs text-slate-400 mb-2">OS Version</label>
-                            <input
-                                type="text"
+                            <Autocomplete
                                 name="os_version"
                                 value={formData.os_version || ''}
                                 onChange={handleChange}
-                                className="input-base"
+                                suggestions={suggestions.os_version}
+                                placeholder="e.g. Windows 11 Pro"
                                 disabled={isSaving}
                             />
                         </div>
@@ -388,34 +395,34 @@ export default function VMForm() {
                         </div>
                         <div>
                             <label className="block font-mono text-xs text-slate-400 mb-2">Owner</label>
-                            <input
-                                type="text"
+                            <Autocomplete
                                 name="owner"
                                 value={formData.owner || ''}
                                 onChange={handleChange}
-                                className="input-base"
+                                suggestions={suggestions.owner}
+                                placeholder="e.g. deepak.n@indishtech.com"
                                 disabled={isSaving}
                             />
                         </div>
                         <div>
                             <label className="block font-mono text-xs text-slate-400 mb-2">Department</label>
-                            <input
-                                type="text"
+                            <Autocomplete
                                 name="department"
                                 value={formData.department || ''}
                                 onChange={handleChange}
-                                className="input-base"
+                                suggestions={suggestions.department}
+                                placeholder="e.g. IT Infrastructure"
                                 disabled={isSaving}
                             />
                         </div>
                         <div>
                             <label className="block font-mono text-xs text-slate-400 mb-2">Application</label>
-                            <input
-                                type="text"
+                            <Autocomplete
                                 name="application"
                                 value={formData.application || ''}
                                 onChange={handleChange}
-                                className="input-base"
+                                suggestions={suggestions.application}
+                                placeholder="e.g. ERP"
                                 disabled={isSaving}
                             />
                         </div>

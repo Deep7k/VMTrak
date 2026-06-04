@@ -292,6 +292,24 @@ router.post(
   }
 );
 
+// ── GET /api/vms/field-values?field=X ────────────────────────────────────────
+// Returns distinct non-empty values for a whitelisted VM field — used for
+// autocomplete suggestions in the VM create/edit form.
+router.get('/field-values', authenticate, requireRole('read'), (req, res, next) => {
+  try {
+    const ALLOWED = new Set(['os_version', 'owner', 'department', 'application']);
+    const field   = req.query.field;
+    if (!ALLOWED.has(field)) return res.status(400).json({ error: 'Invalid field' });
+
+    const rows = db.prepare(
+      `SELECT DISTINCT ${field} FROM vms
+       WHERE ${field} IS NOT NULL AND ${field} != ''
+       ORDER BY ${field}`
+    ).all();
+    res.json(rows.map(r => r[field]));
+  } catch (err) { next(err); }
+});
+
 // ── GET /api/vms/:id ──────────────────────────────────────────────────────────
 router.get('/:id', authenticate, requireRole('read'), (req, res, next) => {
   try {
