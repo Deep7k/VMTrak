@@ -79,16 +79,11 @@
 
 ---
 
-## Future / v2 Scope
+## Upcoming Features
 
 | Feature | Notes |
 |---------|-------|
-| Dashboard charts | Chart.js or recharts — currently plain counts |
-| Filter-aware CSV export | Currently exports all non-decommissioned |
-| PostgreSQL migration | Schema compatible; swap `better-sqlite3` for `pg` |
-| VM power control | vSphere / Proxmox API integration |
-| SSH key storage | Extend `vm_credentials` with `key_type` for Linux VMs |
-| 2FA / TOTP | Gate credential reveal behind per-user TOTP |
-| Webhook notifications | Teams / Slack in addition to email |
-| Scheduled digest reports | Weekly CSV/Excel email summary |
-| Bulk VM power-state sync | Pull live state from hypervisor API |
+| Predictions for fields | Autocomplete on OS Version, Owner, Department, Application — suggestions pulled from existing VM data |
+| Import tool improvements | Better error handling, row-level failure reporting, case-insensitive field matching |
+| Separate Hypervisor page | Full CRUD page for hypervisors (sidebar link), VM form hypervisor field becomes a dropdown sourced from this table |
+| Restrict read permission by department | Add department to user accounts; read-only users see only VMs where they are owner or in the same department |

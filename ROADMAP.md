@@ -83,12 +83,7 @@
 
 | Feature | Notes |
 |---------|-------|
-| Dashboard charts | Chart.js or recharts — currently plain counts |
-| Filter-aware CSV export | Currently exports all non-decommissioned |
-| PostgreSQL migration | Schema compatible; swap `better-sqlite3` for `pg` |
-| VM power control | vSphere / Proxmox API integration |
-| SSH key storage | Extend `vm_credentials` with `key_type` for Linux VMs |
-| 2FA / TOTP | Gate credential reveal behind per-user TOTP |
-| Webhook notifications | Teams / Slack in addition to email |
-| Scheduled digest reports | Weekly CSV/Excel email summary |
-| Bulk VM power-state sync | Pull live state from hypervisor API |
+|Predictions for Fields | when user is filling ,OS Version,Owner,Department,Application application should show from existing data|
+|Improvements to import tool | currently very basic need to improve error handling and case senstivity|
+|Seperate Hypervisor page | Ability to add hypervisors similar to VM View and to the sidebar, update edit vm view Hypervisor filed should be dropdown and queried from hypervisor page data |
+|Restrict read permission further| in user creation window add department so an user who has only read permission should only see vms whose he is either owner or in department.   
