@@ -85,15 +85,19 @@ router.post('/', authenticate, requireRole('readwrite'), (req, res, next) => {
     const now  = new Date().toISOString();
 
     const result = db.prepare(`
-      INSERT INTO hypervisors (name, hostname, type, description, status, environment, created_at, updated_at)
-      VALUES (@name, @hostname, @type, @description, @status, @environment, @now, @now)
+      INSERT INTO hypervisors (name, hostname, type, version, description, status, environment, vcpu, ram_gb, disk_gb, created_at, updated_at)
+      VALUES (@name, @hostname, @type, @version, @description, @status, @environment, @vcpu, @ram_gb, @disk_gb, @now, @now)
     `).run({
       name:        data.name,
       hostname:    data.hostname    ?? null,
       type:        data.type        ?? null,
+      version:     data.version     ?? null,
       description: data.description ?? null,
       status:      data.status      ?? 'active',
       environment: data.environment ?? null,
+      vcpu:        data.vcpu        ?? null,
+      ram_gb:      data.ram_gb      ?? null,
+      disk_gb:     data.disk_gb     ?? null,
       now,
     });
 

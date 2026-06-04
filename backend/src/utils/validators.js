@@ -126,9 +126,13 @@ const createHypervisorSchema = z.object({
   name:        z.string().min(1).max(128),
   hostname:    z.string().max(253).optional().nullable(),
   type:        z.enum(HYPERVISOR_TYPES).optional().nullable(),
+  version:     z.string().max(64).optional().nullable(),
   description: z.string().max(1024).optional().nullable(),
   status:      z.enum(['active', 'maintenance', 'decommissioned']).default('active'),
-  environment: z.enum(['production', 'staging', 'development', 'test']).optional().nullable(),
+  environment: z.enum(['production', 'test']).optional().nullable(),
+  vcpu:        z.number().int().positive().optional().nullable(),
+  ram_gb:      z.number().positive().optional().nullable(),
+  disk_gb:     z.number().positive().optional().nullable(),
 });
 
 const updateHypervisorSchema = createHypervisorSchema.partial();

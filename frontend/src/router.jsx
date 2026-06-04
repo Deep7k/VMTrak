@@ -10,6 +10,7 @@ import UsersPage        from './pages/Users';
 import AuditPage        from './pages/Audit';
 import DashboardPage    from './pages/Dashboard';
 import HypervisorsPage  from './pages/Hypervisors';
+import HypervisorForm   from './pages/HypervisorForm';
 import { RequireAuth, RequireAdmin, RequireReadWrite, RequireSetup } from './components/Guards';
 
 export const router = createBrowserRouter([
@@ -35,7 +36,9 @@ export const router = createBrowserRouter([
       { path: '/vms/new',      element: <RequireReadWrite><VMForm /></RequireReadWrite> },
       { path: '/vms/:id',      element: <VMDetail /> },
       { path: '/vms/:id/edit', element: <RequireReadWrite><VMForm /></RequireReadWrite> },
-      { path: '/hypervisors',  element: <RequireReadWrite><HypervisorsPage /></RequireReadWrite> },
+      { path: '/hypervisors',          element: <RequireReadWrite><HypervisorsPage /></RequireReadWrite> },
+      { path: '/hypervisors/new',      element: <RequireReadWrite><HypervisorForm /></RequireReadWrite> },
+      { path: '/hypervisors/:id/edit', element: <RequireReadWrite><HypervisorForm /></RequireReadWrite> },
       { path: '/users',        element: <RequireAdmin><UsersPage /></RequireAdmin> },
       { path: '/audit',        element: <RequireAdmin><AuditPage /></RequireAdmin> },
     ],
