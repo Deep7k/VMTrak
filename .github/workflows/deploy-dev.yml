@@ -22,7 +22,7 @@ jobs:
         run: echo "${{ secrets.BACKEND_ENV }}" > backend/.env
 
       - name: Build images
-        run: docker compose build
+        run: VITE_APP_VERSION=dev-$(git rev-parse --short HEAD) docker compose build
 
       - name: Deploy
         run: docker compose up -d --remove-orphans

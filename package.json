@@ -1,0 +1,9 @@
+{
+  "name": "vmtrak",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hosted VM inventory and credential management",
+  "scripts": {
+    "version": "node -e \"const fs=require('fs'),v=require('./package.json').version;['backend','frontend'].forEach(d=>{const p=d+'/package.json',pkg=JSON.parse(fs.readFileSync(p));pkg.version=v;fs.writeFileSync(p,JSON.stringify(pkg,null,2)+'\\n');});\" && git add backend/package.json frontend/package.json"
+  }
+}

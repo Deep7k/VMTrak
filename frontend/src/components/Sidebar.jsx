@@ -119,7 +119,7 @@ export default function Sidebar() {
                     fontFamily: 'monospace',
                     fontSize: '11px',
                     color: 'rgba(255,255,255,0.3)',
-                }}>v0.1.0 · online</span>
+                }}>{import.meta.env.VITE_APP_VERSION ?? 'dev'} · online</span>
             </div>
         </div>
     );
