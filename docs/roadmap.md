@@ -1,7 +1,7 @@
 # VMTrak — Roadmap
 
-> Last updated: 2026-06-04
-> Version: v1.0.0 — Production ready
+> Last updated: 2026-06-05
+> Version: v1.2.x — Active development
 
 ---
 
@@ -79,11 +79,28 @@
 
 ---
 
-## Future / v2 Scope
+## Completed — v1.2.x
+
+### Import Tool
+- [x] **Improvements to import tool** — case-insensitive enum matching (Windows/WINDOWS/windows all accepted), human-readable Zod error messages per field, NaN pre-check for numeric columns, "Import another file" retry button, taller error panel with row·name·reason format
+- [x] CSV import template trimmed to match VM Create form fields (15 columns, section order)
+
+### Hypervisors
+- [x] **Separate Hypervisor page** — full CRUD page at `/hypervisors` with sidebar link (readwrite+)
+- [x] Hypervisors table: `name`, `hostname`, `type` (VMware vSphere/Proxmox/Hyper-V/KVM/Other), `version`, `status`, `environment`, `vcpu`, `ram_gb`, `disk_gb`, `description`
+- [x] DB migration: `hypervisors` table with FK `vms.hypervisor_id → hypervisors(id)`; existing VM hypervisor text values seeded and backfilled automatically
+- [x] VM Create/Edit form: hypervisor field replaced with dropdown sourced from hypervisors table
+- [x] TCP reachability check per hypervisor (port by type: vSphere 443, Proxmox 8006, Hyper-V 5985, KVM/Other 22)
+- [x] Live status dot + ↺ Check button on hypervisors list
+- [x] `HypervisorForm` page mirrors VM Create layout (Identity/Host/Resources/Notes sections)
+- [x] Three-dot portal menu on hypervisors list (Edit → form page, Delete with confirmation)
+- [x] Delete guard: 409 if VMs are still assigned to the hypervisor
+
+---
+
+## Upcoming
 
 | Feature | Notes |
 |---------|-------|
 |Predictions for Fields | when user is filling ,OS Version,Owner,Department,Application application should show from existing data|
-|Improvements to import tool | currently very basic need to improve error handling and case senstivity|
-|Seperate Hypervisor page | Ability to add hypervisors similar to VM View and to the sidebar, update edit vm view Hypervisor filed should be dropdown and queried from hypervisor page data |
 |Restrict read permission further| in user creation window add department so an user who has only read permission should only see vms whose he is either owner or in department.|

@@ -98,16 +98,21 @@ An `admin` user is created on first startup (see migration `001_init.sql` for th
 All endpoints require `Authorization: Bearer <token>` unless marked public.
 
 ```
-POST  /api/auth/login          [public]
-POST  /api/auth/refresh        [public, cookie]
-GET   /api/auth/microsoft      [public — Entra SSO redirect]
-GET   /api/vms                 filters: search, environment, status, hypervisor, ...
-GET   /api/vms/reachability    TCP port check (parallel)
-GET   /api/vms/export          CSV download
-POST  /api/vms/import          [readwrite+] CSV bulk import
-GET   /api/vms/:id/rdp         [readwrite+] RDP file download
+POST  /api/auth/login                       [public]
+POST  /api/auth/refresh                     [public, cookie]
+GET   /api/auth/microsoft                   [public — Entra SSO redirect]
+GET   /api/vms                              filters: search, environment, status, hypervisor_id, ...
+GET   /api/vms/reachability                 TCP port check (parallel)
+GET   /api/vms/export                       CSV download
+POST  /api/vms/import                       [readwrite+] CSV bulk import
+GET   /api/vms/:id/rdp                      [readwrite+] RDP file download
 GET   /api/vms/:id/credentials/:cid/reveal  [readwrite+] Decrypt credential
-GET   /api/health              [public]
+GET   /api/hypervisors                      list with VM count
+POST  /api/hypervisors                      [readwrite+] create
+PUT   /api/hypervisors/:id                  [readwrite+] update
+DELETE /api/hypervisors/:id                 [readwrite+] delete (blocked if VMs assigned)
+GET   /api/hypervisors/reachability         TCP probe per hypervisor (port by type)
+GET   /api/health                           [public]
 ```
 
 Full API reference is derivable from `backend/src/routes/`.

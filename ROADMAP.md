@@ -79,11 +79,17 @@
 
 ---
 
-## Future / v2 Scope
+## Completed — v1.2.x
+
+- [x] **Improvements to import tool** — case-insensitive enums, friendly error messages, NaN guard, retry UI
+- [x] CSV template trimmed to match VM Create form fields
+- [x] **Separate Hypervisor page** — full CRUD, sidebar link, FK to vms, reachability check, form page with Resources section
+
+---
+
+## Upcoming
 
 | Feature | Notes |
 |---------|-------|
 |Predictions for Fields | when user is filling ,OS Version,Owner,Department,Application application should show from existing data|
-|Improvements to import tool | currently very basic need to improve error handling and case senstivity|
-|Seperate Hypervisor page | Ability to add hypervisors similar to VM View and to the sidebar, update edit vm view Hypervisor filed should be dropdown and queried from hypervisor page data |
-|Restrict read permission further| in user creation window add department so an user who has only read permission should only see vms whose he is either owner or in department.   
+|Restrict read permission further| in user creation window add department so an user who has only read permission should only see vms whose he is either owner or in department.|

@@ -167,6 +167,7 @@ There is no staging→production promotion flow yet. The `dev` branch IS the dep
 | Migrations                 | `backend/src/db/migrations/`              |
 | Auth routes (local + SSO)  | `backend/src/routes/auth.js`              |
 | VM CRUD routes             | `backend/src/routes/vms.js`               |
+| Hypervisor CRUD routes     | `backend/src/routes/hypervisors.js`       |
 | Credential routes          | `backend/src/routes/credentials.js`       |
 | JWT middleware             | `backend/src/middleware/auth.js`          |
 | AES-256-GCM service        | `backend/src/services/encryption.js`      |
@@ -183,5 +184,7 @@ There is no staging→production promotion flow yet. The `dev` branch IS the dep
 | AppShell layout            | `frontend/src/components/AppShell.jsx`    |
 | Global CSS / theme         | `frontend/src/index.css`                  |
 | Tailwind config            | `frontend/tailwind.config.js`             |
+| Hypervisors list page      | `frontend/src/pages/Hypervisors.jsx`      |
+| Hypervisor create/edit     | `frontend/src/pages/HypervisorForm.jsx`   |
 | Docker Compose             | `docker-compose.yml`                      |
 | CI/CD workflow             | `.github/workflows/deploy-dev.yml`        |
