@@ -21,7 +21,7 @@ jobs:
       - name: Read version
         id: version
         run: |
-          VER=$(node -e 'process.stdout.write(require("./package.json").version)')
+          VER=$(python3 -c "import json; print(json.load(open('package.json'))['version'])")
           echo "VALUE=v${VER}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
