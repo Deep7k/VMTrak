@@ -20,7 +20,9 @@ jobs:
 
       - name: Read version
         id: version
-        run: echo "VALUE=v$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        run: |
+          VER=$(node -e 'process.stdout.write(require("./package.json").version)')
+          echo "VALUE=v${VER}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
