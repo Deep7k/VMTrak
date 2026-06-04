@@ -77,6 +77,38 @@ Migration runner tolerates `duplicate column` errors so a crashed partial migrat
 - Test credentials and env vars are in `.claude/test-creds.md` (gitignored)
 - Test mail: `bash tests/test-mail.sh`
 
+## Versioning
+
+Single source of truth: **root `package.json`** version field.
+
+- Backend `package.json` and frontend `package.json` are synced automatically via the `version` npm lifecycle script
+- Backend health endpoint (`GET /api/health`) returns the version from `backend/package.json`
+- Frontend sidebar displays `VITE_APP_VERSION` injected at build time
+- Dev builds show `dev-<git-sha>` (e.g. `dev-a1b2c3d`)
+- Release builds show `v1.1.0`
+
+### Bump and release
+
+| Change type | Command |
+|---|---|
+| New feature, new page, new endpoint | `npm version minor` |
+| Bug fix, security patch, small tweak | `npm version patch` |
+| Breaking change | `npm version major` |
+
+```bash
+# 1. Merge dev → main first, then on main:
+npm version minor        # bumps root + backend + frontend package.json, commits, tags v1.1.0
+git push origin main --follow-tags   # triggers release.yml → GHCR images + GitHub Release
+```
+
+`npm version` does everything atomically: bumps the three package.json files, makes a git commit, and creates the tag. The `--follow-tags` push sends both the commit and the tag together.
+
+### What release.yml does on a tag push
+1. Reads version from root `package.json`
+2. Builds backend + frontend Docker images
+3. Pushes to GHCR tagged as `:1.1.0`, `:1.1`, `:latest`, `:sha-xxx`
+4. Creates a GitHub Release with auto-generated changelog
+
 ## Testing via curl
 
 Test credentials are in `.claude/test-creds.md`. Read that file first for the current username/password and base URL.

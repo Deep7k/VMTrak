@@ -34,7 +34,8 @@ app.use(cookieParser());
 
 // ── Health (unauthenticated) ──────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
+  const { version } = require('../package.json');
+  res.json({ status: 'ok', version, uptime: Math.floor(process.uptime()) });
 });
 
 // ── API routes ────────────────────────────────────────────────────────────────
