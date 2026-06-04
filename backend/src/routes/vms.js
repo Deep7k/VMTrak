@@ -158,9 +158,29 @@ router.post(
 
       if (rows.length === 0) return res.status(400).json({ error: 'CSV contains no data rows' });
 
-      const NUMERIC = ['vcpu', 'ram_gb', 'disk_gb'];
-      const errors  = [];
-      let imported  = 0;
+      const NUMERIC   = ['vcpu', 'ram_gb', 'disk_gb'];
+      const OS_TYPES  = ['Windows', 'Linux', 'Other'];
+      const errors    = [];
+      let imported    = 0;
+
+      // Produce a short human-readable reason from a Zod error
+      const FIELD_HINTS = {
+        vm_name:     'is required (max 128 chars)',
+        os_type:     'must be Windows, Linux, or Other',
+        environment: 'must be production, staging, development, or test',
+        status:      'must be active, decommissioned, or maintenance',
+        power_state: 'must be on, off, suspended, or unknown',
+        expiry_date: 'must be in YYYY-MM-DD format',
+        vcpu:        'must be a positive integer',
+        ram_gb:      'must be a positive number',
+        disk_gb:     'must be a positive number',
+      };
+      function formatZodErrors(zodError) {
+        return zodError.errors.map(e => {
+          const field = e.path[0];
+          return `${field}: ${FIELD_HINTS[field] ?? e.message.toLowerCase()}`;
+        }).join('; ');
+      }
 
       const insert = db.prepare(`
         INSERT INTO vms (
@@ -188,18 +208,33 @@ router.post(
           const row = {};
           for (const [k, v] of Object.entries(rawRow)) {
             const key = k.toLowerCase().trim();
-            row[key] = v === '' ? undefined : v;
+            row[key] = (v === '' || v == null) ? undefined : v;
           }
+
+          // Case-insensitive enum normalisation
+          if (row.os_type) {
+            const match = OS_TYPES.find(v => v.toLowerCase() === String(row.os_type).toLowerCase());
+            row.os_type = match ?? row.os_type; // keep original if no match so Zod reports the error
+          }
+          for (const f of ['environment', 'status', 'power_state']) {
+            if (row[f]) row[f] = String(row[f]).toLowerCase().trim();
+          }
+
+          // Numeric fields — catch non-numeric values before Zod sees them
           for (const f of NUMERIC) {
-            if (row[f] != null) row[f] = Number(row[f]);
+            if (row[f] != null) {
+              const n = Number(row[f]);
+              if (isNaN(n)) {
+                errors.push({ row: rowNum, vm_name: row.vm_name || '', reason: `${f}: must be a number (got "${row[f]}")` });
+                return;
+              }
+              row[f] = n;
+            }
           }
 
           const result = vmSchema.safeParse(row);
           if (!result.success) {
-            const fieldErrors = result.error.flatten().fieldErrors;
-            const reason = Object.entries(fieldErrors)
-              .map(([f, e]) => `${f}: ${e[0]}`).join('; ');
-            errors.push({ row: rowNum, vm_name: rawRow.vm_name || '', reason });
+            errors.push({ row: rowNum, vm_name: row.vm_name || '', reason: formatZodErrors(result.error) });
             return;
           }
 

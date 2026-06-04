@@ -51,6 +51,14 @@ function ImportModal({ onClose, onImported }) {
     }
   };
 
+  const handleReset = () => {
+    setFile(null);
+    setResult(null);
+    setError('');
+  };
+
+  const allFailed = result && result.imported === 0 && result.skipped > 0;
+
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
       <div className="glass-modal w-full max-w-lg space-y-5">
@@ -92,7 +100,7 @@ function ImportModal({ onClose, onImported }) {
             <div className="grid grid-cols-3 gap-3 text-center">
               {[
                 { label: 'Imported', value: result.imported, color: 'text-emerald-400' },
-                { label: 'Skipped',  value: result.skipped,  color: 'text-yellow-400' },
+                { label: 'Skipped',  value: result.skipped,  color: result.skipped > 0 ? 'text-yellow-400' : 'text-slate-500' },
                 { label: 'Total',    value: result.imported + result.skipped, color: 'text-slate-300' },
               ].map(s => (
                 <div key={s.label} className="p-3 rounded" style={{ background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.07)' }}>
@@ -103,13 +111,21 @@ function ImportModal({ onClose, onImported }) {
             </div>
 
             {result.errors.length > 0 && (
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                <p className="font-mono text-xs text-slate-500 uppercase">Errors</p>
-                {result.errors.map((e, i) => (
-                  <div key={i} className="font-mono text-xs text-red-300 p-2 rounded" style={{ background: 'rgba(226,75,74,0.08)', border: '0.5px solid rgba(226,75,74,0.2)' }}>
-                    Row {e.row} {e.vm_name && `(${e.vm_name})`}: {e.reason}
-                  </div>
-                ))}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="font-mono text-xs text-slate-500 uppercase tracking-wide">
+                    {result.errors.length} row{result.errors.length !== 1 ? 's' : ''} skipped
+                  </p>
+                </div>
+                <div className="space-y-1 overflow-y-auto" style={{ maxHeight: '220px' }}>
+                  {result.errors.map((e, i) => (
+                    <div key={i} className="font-mono text-xs p-2 rounded" style={{ background: 'rgba(226,75,74,0.08)', border: '0.5px solid rgba(226,75,74,0.2)' }}>
+                      <span className="text-slate-400">Row {e.row}</span>
+                      {e.vm_name && <span className="text-slate-300"> · {e.vm_name}</span>}
+                      <span className="text-red-300"> — {e.reason}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -117,10 +133,12 @@ function ImportModal({ onClose, onImported }) {
 
         {/* Actions */}
         <div className="flex gap-2 justify-end pt-2" style={{ borderTop: '0.5px solid rgba(255,255,255,0.07)' }}>
-          <button onClick={onClose} className="btn-secondary">
-            {result ? 'Close' : 'Cancel'}
-          </button>
-          {!result && (
+          <button onClick={onClose} className="btn-secondary">Close</button>
+          {result ? (
+            <button onClick={handleReset} className="btn-primary">
+              Import another file
+            </button>
+          ) : (
             <button onClick={handleUpload} disabled={loading || !file} className="btn-primary disabled:opacity-50">
               {loading ? 'Importing...' : 'Import'}
             </button>
