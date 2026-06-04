@@ -79,11 +79,11 @@
 
 ---
 
-## Upcoming Features
+## Future / v2 Scope
 
 | Feature | Notes |
 |---------|-------|
-| Predictions for fields | Autocomplete on OS Version, Owner, Department, Application — suggestions pulled from existing VM data |
-| Import tool improvements | Better error handling, row-level failure reporting, case-insensitive field matching |
-| Separate Hypervisor page | Full CRUD page for hypervisors (sidebar link), VM form hypervisor field becomes a dropdown sourced from this table |
-| Restrict read permission by department | Add department to user accounts; read-only users see only VMs where they are owner or in the same department |
+|Predictions for Fields | when user is filling ,OS Version,Owner,Department,Application application should show from existing data|
+|Improvements to import tool | currently very basic need to improve error handling and case senstivity|
+|Seperate Hypervisor page | Ability to add hypervisors similar to VM View and to the sidebar, update edit vm view Hypervisor filed should be dropdown and queried from hypervisor page data |
+|Restrict read permission further| in user creation window add department so an user who has only read permission should only see vms whose he is either owner or in department.|
