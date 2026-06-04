@@ -16,6 +16,7 @@ VMTrak replaces manual Excel-based VM tracking with a structured, auditable web 
 
 | Doc | Contents |
 |-----|----------|
+| [docs/deploy.md](docs/deploy.md) | Deployment architecture, release workflow, day-to-day commands |
 | [docs/architecture.md](docs/architecture.md) | Container layout, request flow, CI/CD, key file paths |
 | [docs/auth.md](docs/auth.md) | Local JWT auth, Microsoft Entra SSO, role system, token lifecycle |
 | [docs/mail.md](docs/mail.md) | Notification scheduler, email template, SMTP config, test script |
