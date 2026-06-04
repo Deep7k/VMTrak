@@ -13,11 +13,16 @@ import {
 } from '@tanstack/react-table';
 import api from '../api/client';
 
+// Columns match the VM Create form fields, in section order
 const CSV_COLUMNS = [
-  'vm_name','hostname','ip_address','os_type','os_version','environment',
-  'status','power_state','vcpu','ram_gb','disk_gb','owner','department',
-  'application','description','notes','expiry_date','vm_tag',
-  'hypervisor','cluster','datacenter','vlan','mac_address',
+  'vm_name', 'hostname',
+  'ip_address',
+  'hypervisor',
+  'os_type', 'os_version',
+  'vcpu', 'ram_gb', 'disk_gb',
+  'environment', 'owner', 'department', 'application',
+  'expiry_date',
+  'description',
 ];
 
 function downloadTemplate() {
