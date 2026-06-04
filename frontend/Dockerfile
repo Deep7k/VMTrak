@@ -1,6 +1,10 @@
 # ── Stage 1: build ────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
+# Injected by CI from the git tag (e.g. v1.0.0). Defaults to 'dev' for local builds.
+ARG VITE_APP_VERSION=dev
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
+
 WORKDIR /app
 
 COPY package.json package-lock.json ./
