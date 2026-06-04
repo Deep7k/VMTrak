@@ -26,17 +26,17 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
     const params = [];
 
     if (q.search) {
-      where.push("(vm_name LIKE ? OR hostname LIKE ? OR ip_address LIKE ? OR owner LIKE ?)");
+      where.push("(vms.vm_name LIKE ? OR vms.hostname LIKE ? OR vms.ip_address LIKE ? OR vms.owner LIKE ?)");
       const s = `%${q.search}%`;
       params.push(s, s, s, s);
     }
-    if (q.environment) { where.push('environment = ?'); params.push(q.environment); }
-    if (q.status)      { where.push('status = ?');      params.push(q.status); }
-    if (q.power_state) { where.push('power_state = ?'); params.push(q.power_state); }
+    if (q.environment)   { where.push('vms.environment = ?');   params.push(q.environment); }
+    if (q.status)        { where.push('vms.status = ?');        params.push(q.status); }
+    if (q.power_state)   { where.push('vms.power_state = ?');   params.push(q.power_state); }
     if (q.department)    { where.push('vms.department = ?');    params.push(q.department); }
     if (q.hypervisor_id) { where.push('vms.hypervisor_id = ?'); params.push(q.hypervisor_id); }
     if (q.expiring_in != null) {
-      where.push("expiry_date IS NOT NULL AND expiry_date <= date('now', ? || ' days')");
+      where.push("vms.expiry_date IS NOT NULL AND vms.expiry_date <= date('now', ? || ' days')");
       params.push(`+${q.expiring_in}`);
     }
 
