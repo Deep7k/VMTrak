@@ -43,6 +43,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=branch
             type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.title=VMTrak Backend
             org.opencontainers.image.description=VMTrak API server (Express + SQLite)
@@ -66,6 +67,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=branch
             type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
           labels: |
             org.opencontainers.image.title=VMTrak Frontend
             org.opencontainers.image.description=VMTrak React SPA (nginx)
