@@ -87,9 +87,12 @@
 
 ---
 
-## Upcoming
+## Completed — v1.3.0
 
-| Feature | Notes |
-|---------|-------|
-|Predictions for Fields | when user is filling ,OS Version,Owner,Department,Application application should show from existing data|
-|Restrict read permission further| in user creation window add department so an user who has only read permission should only see vms whose he is either owner or in department.|
+- [x] **Predictions for Fields** — autocomplete on OS Version, Owner, Department, Application from existing VM data
+- [x] **Restrict read permission further** — department on users; read role sees only owned/same-dept VMs
+- [x] Status renamed maintenance → inactive; VM list Status column; Users three-dot menu; POWER STATE header
+
+---
+
+## All roadmap items complete — v1.3.0

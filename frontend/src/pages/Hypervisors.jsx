@@ -13,7 +13,7 @@ const TYPE_COLORS = {
 
 const STATUS_COLORS = {
   active:          'bg-emerald-900/40 text-emerald-300',
-  maintenance:     'bg-amber-900/40 text-amber-300',
+  inactive:        'bg-amber-900/40 text-amber-300',
   decommissioned:  'bg-slate-700 text-slate-400',
 };
 

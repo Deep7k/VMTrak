@@ -145,7 +145,7 @@ export default function VMDetail() {
                     <Field label="Status">
                         <span className={`inline-block px-2 py-1 rounded text-xs font-mono ${
                             vm.status === 'active' ? 'bg-emerald-900/40 text-emerald-300' :
-                            vm.status === 'maintenance' ? 'bg-amber-900/40 text-amber-300' :
+                            vm.status === 'inactive' ? 'bg-amber-900/40 text-amber-300' :
                             'bg-slate-700 text-slate-400'
                         }`}>{vm.status || 'active'}</span>
                     </Field>

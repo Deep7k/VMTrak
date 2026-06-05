@@ -398,7 +398,7 @@ export default function VMForm() {
                             <label className="block font-mono text-xs text-slate-400 mb-2">Status</label>
                             <select name="status" value={formData.status || 'active'} onChange={handleChange} className="input-base" disabled={isSaving}>
                                 <option value="active">Active</option>
-                                <option value="maintenance">Maintenance</option>
+                                <option value="inactive">Inactive</option>
                                 <option value="decommissioned">Decommissioned</option>
                             </select>
                         </div>

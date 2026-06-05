@@ -98,9 +98,21 @@
 
 ---
 
-## Upcoming
+## Completed — v1.3.0
 
-| Feature | Notes |
-|---------|-------|
-|Predictions for Fields | when user is filling ,OS Version,Owner,Department,Application application should show from existing data|
-|Restrict read permission further| in user creation window add department so an user who has only read permission should only see vms whose he is either owner or in department.|
+### Predictions for Fields
+- [x] **Predictions for Fields** — autocomplete on OS Version, Owner, Department, Application in VM Create/Edit; suggestions pulled live from existing VM data via `GET /api/vms/field-values?field=X`
+
+### Read Permission Restriction
+- [x] **Restrict read permission further** — `department` column added to users table; auth middleware loads email + department on every request; `read` role users see only VMs where `vms.owner` matches their email/username OR `vms.department` matches their department; Users create/edit form exposes the Department field
+
+### Status & UI Polish
+- [x] Status values renamed: `maintenance` → `inactive` across VMs and Hypervisors (DB migration + CHECK constraint update)
+- [x] VM list table: Status column added (active/inactive/decommissioned badge)
+- [x] Users table: Actions (Edit/Reset PW/Deactivate) replaced with three-dot portal menu
+- [x] Reachability column header renamed: STATUS → POWER STATE (VM list and Hypervisors)
+- [x] VM Create/Edit: Status field exposed in form
+
+---
+
+## All roadmap items complete — v1.3.0 production ready

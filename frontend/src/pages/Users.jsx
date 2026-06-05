@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../api/client';
 
 function Modal({ title, onClose, children }) {
@@ -305,6 +306,57 @@ function ConfirmDeactivate({ user, onClose, onConfirmed }) {
   );
 }
 
+function ActionsMenu({ user, onEdit, onReset, onDeactivate }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos]   = useState({ top: 0, right: 0 });
+  const btnRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    if (!open) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+    setOpen(o => !o);
+  };
+
+  const items = [
+    { label: 'Edit',       action: () => { setOpen(false); onEdit(user); } },
+    { label: 'Reset PW',   action: () => { setOpen(false); onReset(user); } },
+    ...(user.is_active ? [{ label: 'Deactivate', action: () => { setOpen(false); onDeactivate(user); }, danger: true }] : []),
+  ];
+
+  return (
+    <div onClick={e => e.stopPropagation()}>
+      <button ref={btnRef} onClick={handleToggle}
+        className="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-700 text-slate-400 hover:text-slate-100 text-lg leading-none"
+        title="Actions">⋮</button>
+      {open && createPortal(
+        <div
+          style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 9999, width: '140px', background: '#12151e', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '6px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', padding: '4px 0' }}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          {items.map(item => (
+            <button key={item.label} onClick={item.action}
+              style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontFamily: 'monospace', fontSize: '12px', color: item.danger ? '#e87878' : 'rgba(255,255,255,0.6)', background: 'none', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; if (!item.danger) e.currentTarget.style.color = '#1d9e75'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = item.danger ? '#e87878' : 'rgba(255,255,255,0.6)'; }}
+            >{item.label}</button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -374,13 +426,12 @@ export default function UsersPage() {
                     {u.created_at ? new Date(u.created_at.replace(' ', 'T') + 'Z').toLocaleDateString('en-GB') : '—'}
                   </td>
                   <td>
-                    <div className="flex gap-2 flex-wrap">
-                      <button onClick={() => setEditTarget(u)} className="btn-secondary text-xs px-2 py-1">Edit</button>
-                      <button onClick={() => setResetTarget(u)} className="btn-secondary text-xs px-2 py-1">Reset PW</button>
-                      {u.is_active ? (
-                        <button onClick={() => setDeactivateTarget(u)} className="btn-danger text-xs px-2 py-1">Deactivate</button>
-                      ) : null}
-                    </div>
+                    <ActionsMenu
+                      user={u}
+                      onEdit={setEditTarget}
+                      onReset={setResetTarget}
+                      onDeactivate={setDeactivateTarget}
+                    />
                   </td>
                 </tr>
               ))}

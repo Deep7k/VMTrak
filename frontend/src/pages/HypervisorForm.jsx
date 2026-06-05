@@ -154,7 +154,7 @@ export default function HypervisorForm() {
                             <select name="status" value={formData.status || 'active'} onChange={handleChange}
                                 className="input-base" disabled={isSaving}>
                                 <option value="active">Active</option>
-                                <option value="maintenance">Maintenance</option>
+                                <option value="inactive">Inactive</option>
                                 <option value="decommissioned">Decommissioned</option>
                             </select>
                         </div>

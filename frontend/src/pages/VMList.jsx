@@ -332,6 +332,23 @@ export default function VMList() {
       },
     },
     {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: info => {
+        const val = info.getValue();
+        const colors = {
+          active:          'bg-emerald-900/40 text-emerald-300',
+          inactive:        'bg-amber-900/40 text-amber-300',
+          decommissioned:  'bg-slate-700 text-slate-400',
+        };
+        return (
+          <span className={`px-2 py-1 rounded text-xs font-mono ${colors[val] || 'bg-slate-700 text-slate-300'}`}>
+            {val || '—'}
+          </span>
+        );
+      },
+    },
+    {
       accessorKey: 'primary_username',
       header: 'Username',
       cell: info => <div className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>{info.getValue() || '—'}</div>,
@@ -430,7 +447,7 @@ export default function VMList() {
           <select value={status} onChange={(e) => setStatus(e.target.value)} className="input-base">
             <option value="">All</option>
             <option value="active">Active</option>
-            <option value="maintenance">Maintenance</option>
+            <option value="inactive">Inactive</option>
             <option value="decommissioned">Decommissioned</option>
           </select>
         </div>

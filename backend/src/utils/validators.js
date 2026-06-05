@@ -64,7 +64,7 @@ const vmSchema = z.object({
   // State
   power_state: z.enum(['on', 'off', 'suspended', 'unknown']).default('unknown'),
   environment: z.enum(['production', 'staging', 'development', 'test']).optional().nullable(),
-  status:      z.enum(['active', 'decommissioned', 'maintenance']).default('active'),
+  status:      z.enum(['active', 'inactive', 'decommissioned']).default('active'),
 
   // Ownership
   owner:       z.string().max(256).optional().nullable(),
@@ -110,7 +110,7 @@ const auditQuerySchema = z.object({
 const vmQuerySchema = z.object({
   search:      z.string().optional(),
   environment: z.enum(['production', 'staging', 'development', 'test']).optional(),
-  status:      z.enum(['active', 'decommissioned', 'maintenance']).optional(),
+  status:      z.enum(['active', 'inactive', 'decommissioned']).optional(),
   power_state: z.enum(['on', 'off', 'suspended', 'unknown']).optional(),
   department:   z.string().optional(),
   hypervisor_id: z.coerce.number().int().optional(),
@@ -130,7 +130,7 @@ const createHypervisorSchema = z.object({
   type:        z.enum(HYPERVISOR_TYPES).optional().nullable(),
   version:     z.string().max(64).optional().nullable(),
   description: z.string().max(1024).optional().nullable(),
-  status:      z.enum(['active', 'maintenance', 'decommissioned']).default('active'),
+  status:      z.enum(['active', 'inactive', 'decommissioned']).default('active'),
   environment: z.enum(['production', 'test']).optional().nullable(),
   vcpu:        z.number().int().positive().optional().nullable(),
   ram_gb:      z.number().positive().optional().nullable(),
