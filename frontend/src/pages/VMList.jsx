@@ -286,7 +286,7 @@ export default function VMList() {
       id: 'reach',
       header: () => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span>Status</span>
+          <span>Power State</span>
           <button
             title="Refresh connectivity"
             onClick={e => { e.stopPropagation(); fetchReachability(vms); }}

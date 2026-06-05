@@ -179,7 +179,7 @@ export default function HypervisorsPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              {['STATUS', 'NAME', 'TYPE', 'ENVIRONMENT', 'HOSTNAME / IP', 'STATUS', 'VMS', ''].map((h, i) => (
+              {['POWER STATE', 'NAME', 'TYPE', 'ENVIRONMENT', 'HOSTNAME / IP', 'STATUS', 'VMS', ''].map((h, i) => (
                 <th key={i} className="font-mono text-xs text-slate-500 uppercase"
                   style={{ padding: '10px 16px', textAlign: i === 7 ? 'right' : 'left', fontWeight: 500 }}>
                   {h}

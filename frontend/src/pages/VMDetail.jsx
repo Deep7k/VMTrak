@@ -107,6 +107,7 @@ export default function VMDetail() {
                     <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#e8e8e8', margin: 0 }}>{vm.vm_name}</h1>
                     <div className="flex items-center gap-3 mt-1">
                         <span className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>{vm.ip_address || 'No IP'}</span>
+                        <span className="font-mono text-xs text-slate-500">Power State:</span>
                         <StatusBadge status={reach} />
                     </div>
                 </div>
@@ -141,7 +142,14 @@ export default function VMDetail() {
                             {vm.environment || '—'}
                         </span>
                     </Field>
-                    <Field label="Power State">
+                    <Field label="Status">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-mono ${
+                            vm.status === 'active' ? 'bg-emerald-900/40 text-emerald-300' :
+                            vm.status === 'maintenance' ? 'bg-amber-900/40 text-amber-300' :
+                            'bg-slate-700 text-slate-400'
+                        }`}>{vm.status || 'active'}</span>
+                    </Field>
+                    <Field label="State">
                         <p className="text-slate-100 font-mono">{vm.power_state}</p>
                     </Field>
                     <Field label="Owner">

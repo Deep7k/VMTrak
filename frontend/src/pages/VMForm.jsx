@@ -149,6 +149,7 @@ export default function VMForm() {
         ram_gb: '',
         disk_gb: '',
         environment: 'production',
+        status: 'active',
         owner: '',
         department: '',
         application: '',
@@ -391,6 +392,14 @@ export default function VMForm() {
                                 <option value="staging">Staging</option>
                                 <option value="development">Development</option>
                                 <option value="test">Test</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block font-mono text-xs text-slate-400 mb-2">Status</label>
+                            <select name="status" value={formData.status || 'active'} onChange={handleChange} className="input-base" disabled={isSaving}>
+                                <option value="active">Active</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="decommissioned">Decommissioned</option>
                             </select>
                         </div>
                         <div>
