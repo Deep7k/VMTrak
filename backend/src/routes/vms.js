@@ -30,6 +30,17 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
       const s = `%${q.search}%`;
       params.push(s, s, s, s);
     }
+    // Read-only users see only VMs they own or belong to their department
+    if (req.user.role === 'read') {
+      const parts = ['vms.owner = ?', 'vms.owner = ?'];
+      params.push(req.user.email ?? '', req.user.username);
+      if (req.user.department) {
+        parts.push('vms.department = ?');
+        params.push(req.user.department);
+      }
+      where.push(`(${parts.join(' OR ')})`);
+    }
+
     if (q.environment)   { where.push('vms.environment = ?');   params.push(q.environment); }
     if (q.status)        { where.push('vms.status = ?');        params.push(q.status); }
     if (q.power_state)   { where.push('vms.power_state = ?');   params.push(q.power_state); }
@@ -319,6 +330,12 @@ router.get('/:id', authenticate, requireRole('read'), (req, res, next) => {
       WHERE vms.id = ?
     `).get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
+
+    if (req.user.role === 'read') {
+      const ownsVm = vm.owner === req.user.email || vm.owner === req.user.username;
+      const inDept = req.user.department && vm.department === req.user.department;
+      if (!ownsVm && !inDept) return res.status(403).json({ error: 'Access denied' });
+    }
     writeAudit({ user_id: req.user.id, username: req.user.username, action: 'vm.view', entity_type: 'vm', entity_id: vm.id, entity_name: vm.vm_name, ip_address: getIp(req) });
     res.json(vm);
   } catch (err) { next(err); }

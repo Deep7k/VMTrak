@@ -12,7 +12,7 @@ const router = express.Router();
 // All user management routes require admin
 router.use(authenticate, requireRole('admin'));
 
-const PUBLIC_FIELDS = 'id, username, email, role, is_active, notify_expiry, created_at, updated_at';
+const PUBLIC_FIELDS = 'id, username, email, role, department, is_active, notify_expiry, created_at, updated_at';
 
 // ── GET /api/users ────────────────────────────────────────────────────────────
 router.get('/', (req, res, next) => {
@@ -29,8 +29,8 @@ router.post('/', async (req, res, next) => {
     const hash = await bcrypt.hash(data.password, 12);
 
     const result = db.prepare(
-      'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)'
-    ).run(data.username, data.email, hash, data.role);
+      'INSERT INTO users (username, email, password_hash, role, department) VALUES (?, ?, ?, ?, ?)'
+    ).run(data.username, data.email, hash, data.role, data.department ?? null);
 
     const user = db.prepare(`SELECT ${PUBLIC_FIELDS} FROM users WHERE id = ?`).get(result.lastInsertRowid);
 
@@ -70,6 +70,7 @@ router.put('/:id', (req, res, next) => {
     if (data.role          !== undefined) updates.role          = data.role;
     if (data.is_active     !== undefined) updates.is_active     = data.is_active ? 1 : 0;
     if (data.notify_expiry !== undefined) updates.notify_expiry = data.notify_expiry ? 1 : 0;
+    if (data.department    !== undefined) updates.department    = data.department ?? null;
     updates.updated_at = new Date().toISOString();
 
     const fields = Object.keys(updates).map(k => `${k} = @${k}`).join(', ');
