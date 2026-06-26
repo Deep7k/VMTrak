@@ -26,9 +26,15 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
     const params = [];
 
     if (q.search) {
-      where.push("(vms.vm_name LIKE ? OR vms.hostname LIKE ? OR vms.ip_address LIKE ? OR vms.owner LIKE ?)");
+      where.push(`(
+        vms.vm_name LIKE ? OR vms.hostname LIKE ? OR vms.ip_address LIKE ? OR
+        vms.owner LIKE ? OR vms.department LIKE ? OR vms.application LIKE ? OR
+        vms.os_version LIKE ? OR vms.notes LIKE ? OR vms.mac_address LIKE ? OR
+        vms.vlan LIKE ? OR vms.environment LIKE ? OR vms.status LIKE ? OR
+        h.name LIKE ?
+      )`);
       const s = `%${q.search}%`;
-      params.push(s, s, s, s);
+      params.push(s, s, s, s, s, s, s, s, s, s, s, s, s);
     }
     // Read-only users see only VMs they own or belong to their department
     if (req.user.role === 'read') {
