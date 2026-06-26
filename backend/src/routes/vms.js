@@ -84,7 +84,11 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
 // ── GET /api/vms/export  (CSV) ────────────────────────────────────────────────
 router.get('/export', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
-    const rows = db.prepare("SELECT * FROM vms WHERE status != 'decommissioned' AND deleted_at IS NULL").all();
+    const rows = db.prepare(`
+      SELECT vms.*, h.name AS hypervisor
+      FROM vms LEFT JOIN hypervisors h ON vms.hypervisor_id = h.id
+      WHERE vms.status != 'decommissioned' AND vms.deleted_at IS NULL
+    `).all();
 
     const cols = [
       'vm_name', 'vm_tag', 'description', 'hypervisor', 'cluster', 'datacenter',
@@ -188,7 +192,7 @@ router.post(
         vm_name:     'is required (max 128 chars)',
         os_type:     'must be Windows, Linux, or Other',
         environment: 'must be production, staging, development, or test',
-        status:      'must be active, decommissioned, or maintenance',
+        status:      'must be active, inactive, or decommissioned',
         power_state: 'must be on, off, suspended, or unknown',
         expiry_date: 'must be in YYYY-MM-DD format',
         vcpu:        'must be a positive integer',
@@ -217,6 +221,8 @@ router.post(
           @now, @now, @user_id, @user_id
         )
       `);
+      const findHv   = db.prepare('SELECT id FROM hypervisors WHERE LOWER(name) = LOWER(?)');
+      const insertHv = db.prepare('INSERT INTO hypervisors (name) VALUES (?)');
 
       const runImport = db.transaction(() => {
         const now = new Date().toISOString();
@@ -254,9 +260,9 @@ router.post(
 
           // Resolve hypervisor text → hypervisor_id (create if not exists)
           if (row.hypervisor) {
-            let hv = db.prepare('SELECT id FROM hypervisors WHERE LOWER(name) = LOWER(?)').get(row.hypervisor);
+            let hv = findHv.get(row.hypervisor);
             if (!hv) {
-              const r = db.prepare('INSERT INTO hypervisors (name) VALUES (?)').run(row.hypervisor);
+              const r = insertHv.run(row.hypervisor);
               hv = { id: r.lastInsertRowid };
             }
             row.hypervisor_id = hv.id;
@@ -329,7 +335,7 @@ router.get('/field-values', authenticate, requireRole('read'), (req, res, next) 
 });
 
 // ── GET /api/vms/deleted ──────────────────────────────────────────────────────
-router.get('/deleted', authenticate, requireRole('readwrite'), (req, res, next) => {
+router.get('/deleted', authenticate, requireRole('admin'), (req, res, next) => {
   try {
     const rows = db.prepare(`
       SELECT vms.*, h.name AS hypervisor_name,
@@ -429,7 +435,7 @@ router.post('/', authenticate, requireRole('readwrite'), (req, res, next) => {
 // ── PUT /api/vms/:id  [admin] ─────────────────────────────────────────────────
 router.put('/:id', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
-    const existing = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
+    const existing = db.prepare('SELECT * FROM vms WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'VM not found' });
 
     const data = validate(updateVmSchema, req.body);
@@ -499,7 +505,7 @@ router.post('/:id/restore', authenticate, requireRole('readwrite'), (req, res, n
 // ── GET /api/vms/:id/rdp ──────────────────────────────────────────────────────
 router.get('/:id/rdp', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
-    const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
+    const vm = db.prepare('SELECT * FROM vms WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
     if (!vm.ip_address) return res.status(400).json({ error: 'VM has no IP address configured' });
 

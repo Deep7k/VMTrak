@@ -64,7 +64,10 @@ export default function DeletedVMs() {
 
   const fmt = (ts) => {
     if (!ts) return '—';
-    return new Date(ts.replace(' ', 'T') + 'Z').toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+    // Backend stores ISO strings (already contain 'T' and 'Z'); SQLite datetime()
+    // strings have a space separator and no 'Z'. Handle both formats.
+    const iso = ts.includes('T') ? ts : ts.replace(' ', 'T') + 'Z';
+    return new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
   };
 
   return (

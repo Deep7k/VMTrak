@@ -8,7 +8,7 @@ const NAV = [
     { label: 'Hypervisors', icon: 'ti-cpu',              path: '/hypervisors', minRole: 'readwrite' },
     { label: 'Users',       icon: 'ti-users',            path: '/users',       minRole: 'admin' },
     { label: 'Audit Log',   icon: 'ti-list-details',     path: '/audit',       minRole: 'admin' },
-    { label: 'Deleted VMs', icon: 'ti-trash',            path: '/vms/deleted', minRole: 'readwrite' },
+    { label: 'Deleted VMs', icon: 'ti-trash',            path: '/vms/deleted', minRole: 'admin' },
 ];
 
 export default function Sidebar() {

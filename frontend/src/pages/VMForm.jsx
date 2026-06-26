@@ -231,6 +231,13 @@ export default function VMForm() {
 
     if (isLoading) return <div className="p-6 text-slate-400 font-mono">Loading...</div>;
 
+    if (isEditing && error && !formData.id) return (
+        <div className="p-6 space-y-4">
+            <button onClick={() => navigate('/vms')} className="text-emerald-400 hover:text-emerald-300 font-mono text-sm">← Back</button>
+            <div className="p-3 bg-red-900/20 border border-red-700 rounded font-mono text-sm text-red-300">{error}</div>
+        </div>
+    );
+
     return (
         <div className="p-6 space-y-6 max-w-2xl">
             {/* Header */}
@@ -409,7 +416,7 @@ export default function VMForm() {
                                 value={formData.owner || ''}
                                 onChange={handleChange}
                                 suggestions={suggestions.owner}
-                                placeholder="e.g. deepak.n@indishtech.com"
+                                placeholder="e.g. john.doe@contoso.com"
                                 disabled={isSaving}
                             />
                         </div>
@@ -475,11 +482,11 @@ export default function VMForm() {
                 <div>
                     <h2 className="text-sm font-mono font-bold text-slate-300 uppercase mb-4">Notes</h2>
                     <textarea
-                        name="description"
-                        value={formData.description || ''}
+                        name="notes"
+                        value={formData.notes || ''}
                         onChange={handleChange}
                         rows={4}
-                        placeholder="Description..."
+                        placeholder="Notes..."
                         className="input-base"
                         disabled={isSaving}
                     />

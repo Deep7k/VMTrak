@@ -61,7 +61,7 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
     const rows = db.prepare(`
       SELECT h.*, COUNT(v.id) AS vm_count
       FROM hypervisors h
-      LEFT JOIN vms v ON v.hypervisor_id = h.id
+      LEFT JOIN vms v ON v.hypervisor_id = h.id AND v.deleted_at IS NULL
       GROUP BY h.id
       ORDER BY h.name
     `).all();
@@ -124,6 +124,9 @@ router.put('/:id', authenticate, requireRole('readwrite'), (req, res, next) => {
     if (!existing) return res.status(404).json({ error: 'Hypervisor not found' });
 
     const data   = validate(updateHypervisorSchema, req.body);
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
     const fields = Object.keys(data).map(k => `${k} = @${k}`).join(', ');
 
     db.prepare(
@@ -152,7 +155,7 @@ router.delete('/:id', authenticate, requireRole('readwrite'), (req, res, next) =
     const existing = db.prepare('SELECT * FROM hypervisors WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Hypervisor not found' });
 
-    const vmCount = db.prepare('SELECT COUNT(*) as n FROM vms WHERE hypervisor_id = ?').get(req.params.id).n;
+    const vmCount = db.prepare('SELECT COUNT(*) as n FROM vms WHERE hypervisor_id = ? AND deleted_at IS NULL').get(req.params.id).n;
     if (vmCount > 0) {
       return res.status(409).json({
         error: `Cannot delete — ${vmCount} VM${vmCount !== 1 ? 's are' : ' is'} assigned to this hypervisor`,
