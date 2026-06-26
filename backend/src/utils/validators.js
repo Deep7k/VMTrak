@@ -15,11 +15,12 @@ const initialSetupSchema = z.object({
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 const createUserSchema = z.object({
-  username:   z.string().min(2).max(64).regex(/^[a-zA-Z0-9._-]+$/, 'Invalid username'),
-  email:      z.string().email().max(256),
-  password:   z.string().min(8).max(256),
-  role:       z.enum(['admin', 'readwrite', 'read']).default('readwrite'),
-  department: z.string().max(128).optional().nullable(),
+  username:      z.string().min(2).max(64).regex(/^[a-zA-Z0-9._-]+$/, 'Invalid username'),
+  email:         z.string().email().max(256),
+  password:      z.string().min(8).max(256),
+  role:          z.enum(['admin', 'readwrite', 'read']).default('readwrite'),
+  department:    z.string().max(128).optional().nullable(),
+  notify_expiry: z.boolean().optional().default(false),
 });
 
 const updateUserSchema = z.object({

@@ -51,6 +51,7 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
       params.push(`+${q.expiring_in}`);
     }
 
+    where.push('vms.deleted_at IS NULL');
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const sortCol = SORTABLE.has(q.sort) ? q.sort : 'created_at';
     const order = q.order === 'asc' ? 'ASC' : 'DESC';
@@ -77,7 +78,7 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
 // ── GET /api/vms/export  (CSV) ────────────────────────────────────────────────
 router.get('/export', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
-    const rows = db.prepare("SELECT * FROM vms WHERE status != 'decommissioned'").all();
+    const rows = db.prepare("SELECT * FROM vms WHERE status != 'decommissioned' AND deleted_at IS NULL").all();
 
     const cols = [
       'vm_name', 'vm_tag', 'description', 'hypervisor', 'cluster', 'datacenter',
@@ -125,7 +126,7 @@ router.get('/reachability', authenticate, requireRole('read'), async (req, res, 
 
     const placeholders = ids.map(() => '?').join(',');
     const vms = db.prepare(
-      `SELECT id, ip_address, os_type FROM vms WHERE id IN (${placeholders})`
+      `SELECT id, ip_address, os_type FROM vms WHERE id IN (${placeholders}) AND deleted_at IS NULL`
     ).all(...ids);
 
     const checkPort = (ip, port) => new Promise(resolve => {
@@ -314,10 +315,26 @@ router.get('/field-values', authenticate, requireRole('read'), (req, res, next) 
 
     const rows = db.prepare(
       `SELECT DISTINCT ${field} FROM vms
-       WHERE ${field} IS NOT NULL AND ${field} != ''
+       WHERE ${field} IS NOT NULL AND ${field} != '' AND deleted_at IS NULL
        ORDER BY ${field}`
     ).all();
     res.json(rows.map(r => r[field]));
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/vms/deleted ──────────────────────────────────────────────────────
+router.get('/deleted', authenticate, requireRole('readwrite'), (req, res, next) => {
+  try {
+    const rows = db.prepare(`
+      SELECT vms.*, h.name AS hypervisor_name,
+             u.username AS deleted_by_username
+      FROM vms
+      LEFT JOIN hypervisors h ON vms.hypervisor_id = h.id
+      LEFT JOIN users u ON vms.deleted_by = u.id
+      WHERE vms.deleted_at IS NOT NULL
+      ORDER BY vms.deleted_at DESC
+    `).all();
+    res.json(rows);
   } catch (err) { next(err); }
 });
 
@@ -327,7 +344,7 @@ router.get('/:id', authenticate, requireRole('read'), (req, res, next) => {
     const vm = db.prepare(`
       SELECT vms.*, h.name AS hypervisor_name
       FROM vms LEFT JOIN hypervisors h ON vms.hypervisor_id = h.id
-      WHERE vms.id = ?
+      WHERE vms.id = ? AND vms.deleted_at IS NULL
     `).get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
 
@@ -428,14 +445,47 @@ router.put('/:id', authenticate, requireRole('readwrite'), (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// ── DELETE /api/vms/:id  [admin] ──────────────────────────────────────────────
+// ── DELETE /api/vms/:id  (soft-delete, reason required) ──────────────────────
 router.delete('/:id', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
-    const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
+    const vm = db.prepare('SELECT * FROM vms WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
 
-    db.prepare('DELETE FROM vms WHERE id = ?').run(req.params.id);
-    writeAudit({ user_id: req.user.id, username: req.user.username, action: 'vm.delete', entity_type: 'vm', entity_id: vm.id, entity_name: vm.vm_name, ip_address: getIp(req) });
+    const reason = (req.body?.reason || '').trim();
+    if (!reason) return res.status(400).json({ error: 'delete_reason is required' });
+
+    const now = new Date().toISOString();
+    db.prepare(
+      'UPDATE vms SET deleted_at = ?, deleted_by = ?, delete_reason = ? WHERE id = ?'
+    ).run(now, req.user.id, reason, vm.id);
+
+    writeAudit({
+      user_id: req.user.id, username: req.user.username,
+      action: 'vm.delete', entity_type: 'vm',
+      entity_id: vm.id, entity_name: vm.vm_name,
+      detail: { reason },
+      ip_address: getIp(req),
+    });
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/vms/:id/restore ─────────────────────────────────────────────────
+router.post('/:id/restore', authenticate, requireRole('readwrite'), (req, res, next) => {
+  try {
+    const vm = db.prepare('SELECT * FROM vms WHERE id = ? AND deleted_at IS NOT NULL').get(req.params.id);
+    if (!vm) return res.status(404).json({ error: 'VM not found or not deleted' });
+
+    db.prepare(
+      'UPDATE vms SET deleted_at = NULL, deleted_by = NULL, delete_reason = NULL, updated_at = ?, updated_by = ? WHERE id = ?'
+    ).run(new Date().toISOString(), req.user.id, vm.id);
+
+    writeAudit({
+      user_id: req.user.id, username: req.user.username,
+      action: 'vm.restore', entity_type: 'vm',
+      entity_id: vm.id, entity_name: vm.vm_name,
+      ip_address: getIp(req),
+    });
     res.json({ ok: true });
   } catch (err) { next(err); }
 });

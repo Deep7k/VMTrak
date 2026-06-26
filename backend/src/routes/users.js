@@ -29,8 +29,8 @@ router.post('/', async (req, res, next) => {
     const hash = await bcrypt.hash(data.password, 12);
 
     const result = db.prepare(
-      'INSERT INTO users (username, email, password_hash, role, department) VALUES (?, ?, ?, ?, ?)'
-    ).run(data.username, data.email, hash, data.role, data.department ?? null);
+      'INSERT INTO users (username, email, password_hash, role, department, notify_expiry) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(data.username, data.email, hash, data.role, data.department ?? null, data.notify_expiry ? 1 : 0);
 
     const user = db.prepare(`SELECT ${PUBLIC_FIELDS} FROM users WHERE id = ?`).get(result.lastInsertRowid);
 

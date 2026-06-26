@@ -8,6 +8,7 @@ const NAV = [
     { label: 'Hypervisors', icon: 'ti-cpu',              path: '/hypervisors', minRole: 'readwrite' },
     { label: 'Users',       icon: 'ti-users',            path: '/users',       minRole: 'admin' },
     { label: 'Audit Log',   icon: 'ti-list-details',     path: '/audit',       minRole: 'admin' },
+    { label: 'Deleted VMs', icon: 'ti-trash',            path: '/vms/deleted', minRole: 'readwrite' },
 ];
 
 export default function Sidebar() {
@@ -15,10 +16,13 @@ export default function Sidebar() {
     const user = useAuthStore(s => s.user);
     const visibleNav = NAV.filter(item => hasMinRole(user, item.minRole));
 
-    const isActive = (path) =>
-        path === '/vms'
-            ? pathname === '/vms' || pathname === '/' || pathname.startsWith('/vms/')
-            : pathname.startsWith(path);
+    const isActive = (path) => {
+        if (path === '/vms') {
+            return (pathname === '/vms' || pathname === '/') ||
+                (pathname.startsWith('/vms/') && !pathname.startsWith('/vms/deleted'));
+        }
+        return pathname.startsWith(path);
+    };
 
     return (
         <div style={{

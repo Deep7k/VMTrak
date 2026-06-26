@@ -11,6 +11,7 @@ import AuditPage        from './pages/Audit';
 import DashboardPage    from './pages/Dashboard';
 import HypervisorsPage  from './pages/Hypervisors';
 import HypervisorForm   from './pages/HypervisorForm';
+import DeletedVMs       from './pages/DeletedVMs';
 import { RequireAuth, RequireAdmin, RequireReadWrite, RequireSetup } from './components/Guards';
 
 export const router = createBrowserRouter([
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
       { path: '/dashboard',    element: <RequireReadWrite><DashboardPage /></RequireReadWrite> },
       { path: '/vms',          element: <VMList /> },
       { path: '/vms/new',      element: <RequireReadWrite><VMForm /></RequireReadWrite> },
+      { path: '/vms/deleted',  element: <RequireReadWrite><DeletedVMs /></RequireReadWrite> },
       { path: '/vms/:id',      element: <VMDetail /> },
       { path: '/vms/:id/edit', element: <RequireReadWrite><VMForm /></RequireReadWrite> },
       { path: '/hypervisors',          element: <RequireReadWrite><HypervisorsPage /></RequireReadWrite> },

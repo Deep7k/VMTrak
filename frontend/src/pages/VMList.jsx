@@ -7,7 +7,6 @@ import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
-  getSortedRowModel,
   getFilteredRowModel,
   flexRender,
 } from '@tanstack/react-table';
@@ -173,7 +172,63 @@ function StatusDot({ status }) {
   );
 }
 
-function ActionsMenu({ vm, canWrite }) {
+function DeleteVMModal({ vm, onClose, onDeleted }) {
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!reason.trim()) { setError('Reason is required'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await api.delete(`/vms/${vm.id}`, { data: { reason: reason.trim() } });
+      onDeleted();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Delete failed');
+      setSaving(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
+      <div className="glass-modal w-full max-w-md space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-mono font-bold text-slate-100 text-lg">Delete VM</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-100 text-2xl leading-none">&times;</button>
+        </div>
+        <p className="font-mono text-sm text-slate-300">
+          <span className="text-slate-100 font-semibold">{vm.vm_name}</span> will be moved to the Deleted VMs page. This action can be undone by an admin.
+        </p>
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block font-mono text-xs text-slate-400 mb-1">Reason <span className="text-red-400">*</span></label>
+            <textarea
+              autoFocus
+              required
+              rows={3}
+              className="input-base resize-none"
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="Why is this VM being deleted?"
+            />
+          </div>
+          {error && <p className="text-red-400 font-mono text-sm">{error}</p>}
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-danger">
+              {saving ? 'Deleting…' : 'Delete VM'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function ActionsMenu({ vm, canWrite, onDelete }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 0 });
@@ -214,6 +269,7 @@ function ActionsMenu({ vm, canWrite }) {
     { label: 'View',         action: () => { navigate(`/vms/${vm.id}`);     setOpen(false); } },
     ...(canWrite ? [{ label: 'Edit', action: () => { navigate(`/vms/${vm.id}/edit`); setOpen(false); } }] : []),
     ...(canWrite ? [{ label: 'Download RDP', action: () => downloadRDP() }] : []),
+    ...(canWrite ? [{ label: 'Delete', action: () => { setOpen(false); onDelete(vm); }, danger: true }] : []),
   ];
 
   return (
@@ -235,9 +291,9 @@ function ActionsMenu({ vm, canWrite }) {
             <button
               key={item.label}
               onClick={item.action}
-              style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontFamily: 'monospace', fontSize: '12px', color: 'rgba(255,255,255,0.6)', background: 'none', border: 'none', cursor: 'pointer' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#1d9e75'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+              style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontFamily: 'monospace', fontSize: '12px', color: item.danger ? '#e87878' : 'rgba(255,255,255,0.6)', background: 'none', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; if (!item.danger) e.currentTarget.style.color = '#1d9e75'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = item.danger ? '#e87878' : 'rgba(255,255,255,0.6)'; }}
             >
               {item.label}
             </button>
@@ -264,6 +320,9 @@ export default function VMList() {
   const [reachChecking, setReachChecking] = useState(false);
   const [hypervisorId, setHypervisorId] = useState('');
   const [hypervisors, setHypervisors]   = useState([]);
+  const [sortCol, setSortCol]   = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const fetchReachability = useCallback(async (vmList) => {
     if (!vmList.length) return;
@@ -300,22 +359,38 @@ export default function VMList() {
     },
     {
       accessorKey: 'vm_name',
-      header: 'VM Name',
+      header: () => (
+        <button onClick={() => toggleSort('vm_name')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit', padding: 0, display: 'flex', alignItems: 'center' }}>
+          VM Name<SortIndicator col="vm_name" />
+        </button>
+      ),
+      enableSorting: false,
       cell: info => <div className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>{info.getValue()}</div>,
     },
     {
       accessorKey: 'ip_address',
-      header: 'IP Address',
+      header: () => (
+        <button onClick={() => toggleSort('ip_address')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit', padding: 0, display: 'flex', alignItems: 'center' }}>
+          IP Address<SortIndicator col="ip_address" />
+        </button>
+      ),
+      enableSorting: false,
       cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'hypervisor_name',
       header: 'Hypervisor',
+      enableSorting: false,
       cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'environment',
-      header: 'Environment',
+      header: () => (
+        <button onClick={() => toggleSort('environment')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit', padding: 0, display: 'flex', alignItems: 'center' }}>
+          Environment<SortIndicator col="environment" />
+        </button>
+      ),
+      enableSorting: false,
       cell: info => {
         const val = info.getValue();
         const colors = {
@@ -333,7 +408,12 @@ export default function VMList() {
     },
     {
       accessorKey: 'status',
-      header: 'Status',
+      header: () => (
+        <button onClick={() => toggleSort('status')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit', padding: 0, display: 'flex', alignItems: 'center' }}>
+          Status<SortIndicator col="status" />
+        </button>
+      ),
+      enableSorting: false,
       cell: info => {
         const val = info.getValue();
         const colors = {
@@ -357,9 +437,9 @@ export default function VMList() {
       id: 'actions',
       header: '',
       enableSorting: false,
-      cell: info => <ActionsMenu vm={info.row.original} canWrite={canWrite} />,
+      cell: info => <ActionsMenu vm={info.row.original} canWrite={canWrite} onDelete={setDeleteTarget} />,
     },
-  ], [reachability, reachChecking, canWrite, vms, fetchReachability]);
+  ], [reachability, reachChecking, canWrite, vms, fetchReachability, sortCol, sortOrder]);
 
   useEffect(() => {
     api.get('/vms/hypervisors').then(r => setHypervisors(r.data)).catch(() => {});
@@ -367,7 +447,7 @@ export default function VMList() {
 
   useEffect(() => {
     loadVMs();
-  }, [search, environment, status, hypervisorId]);
+  }, [search, environment, status, hypervisorId, sortCol, sortOrder]);
 
   const loadVMs = async () => {
     setIsLoading(true);
@@ -375,6 +455,8 @@ export default function VMList() {
       const params = new URLSearchParams({
         page: 1,
         limit: 50,
+        sort: sortCol,
+        order: sortOrder,
         ...(search && { search }),
         ...(environment && { environment }),
         ...(status && { status }),
@@ -391,13 +473,41 @@ export default function VMList() {
     }
   };
 
+  const toggleSort = (col) => {
+    if (sortCol === col) {
+      setSortOrder(o => o === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(col);
+      setSortOrder('asc');
+    }
+  };
+
+  const SortIndicator = ({ col }) => {
+    if (sortCol !== col) return <span style={{ opacity: 0.2, fontSize: '10px', marginLeft: '4px' }}>↕</span>;
+    return <span style={{ fontSize: '10px', marginLeft: '4px', color: '#1d9e75' }}>{sortOrder === 'asc' ? '↑' : '↓'}</span>;
+  };
+
+  const exportCSV = async () => {
+    try {
+      const response = await api.get('/vms/export', { responseType: 'blob' });
+      const url = URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vmtrak-export-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Export failed');
+    }
+  };
+
   const table = useReactTable({
     data: vms,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    manualSorting: true,
   });
 
   return (
@@ -408,16 +518,15 @@ export default function VMList() {
           <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#e8e8e8', margin: 0 }}>Virtual Machines</h1>
           <p className="font-mono text-sm mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Total: {total} VMs</p>
         </div>
-        {canWrite && (
-          <div className="flex gap-2">
-            <button onClick={() => setShowImport(true)} className="btn-secondary">
-              ↑ Import CSV
-            </button>
-            <button onClick={() => navigate('/vms/new')} className="btn-primary">
-              + New VM
-            </button>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <button onClick={exportCSV} className="btn-secondary">↓ Export CSV</button>
+          {canWrite && (
+            <>
+              <button onClick={() => setShowImport(true)} className="btn-secondary">↑ Import CSV</button>
+              <button onClick={() => navigate('/vms/new')} className="btn-primary">+ New VM</button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -538,6 +647,13 @@ export default function VMList() {
         <ImportModal
           onClose={() => setShowImport(false)}
           onImported={loadVMs}
+        />
+      )}
+      {deleteTarget && (
+        <DeleteVMModal
+          vm={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={() => { setDeleteTarget(null); loadVMs(); }}
         />
       )}
     </div>
