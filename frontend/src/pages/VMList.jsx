@@ -108,9 +108,9 @@ function ImportModal({ onClose, onImported }) {
           <h2 className="font-mono font-bold text-slate-100">Import VMs from CSV</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-lg leading-none">✕</button>
         </div>
-        <div className="p-3 rounded font-mono text-xs text-slate-400" style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-          <p className="mb-2">Only <span className="text-slate-200">vm_name</span> is required. All other columns are optional.</p>
-          <button onClick={downloadTemplate} className="text-emerald-400 hover:text-emerald-300">↓ Download template CSV</button>
+        <div className="p-3 rounded font-mono text-xs" style={{ background: '#131A27', border: '1px solid #22304A', color: '#596B88' }}>
+          <p className="mb-2">Only <span style={{ color: '#C8D3E8' }}>vm_name</span> is required. All other columns are optional.</p>
+          <button onClick={downloadTemplate} style={{ color: '#F4A96A', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', fontSize: 'inherit' }}>↓ Download template CSV</button>
         </div>
         {!result && (
           <div>
@@ -129,9 +129,9 @@ function ImportModal({ onClose, onImported }) {
                 { label: 'Skipped',  value: result.skipped,  color: result.skipped > 0 ? 'text-yellow-400' : 'text-slate-500' },
                 { label: 'Total',    value: result.imported + result.skipped, color: 'text-slate-300' },
               ].map(s => (
-                <div key={s.label} className="p-3 rounded" style={{ background: 'rgba(255,255,255,0.04)', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                <div key={s.label} className="p-3 rounded" style={{ background: '#0D1119', border: '1px solid #192030' }}>
                   <div className={`font-mono text-2xl font-bold ${s.color}`}>{s.value}</div>
-                  <div className="font-mono text-xs text-slate-500 mt-1">{s.label}</div>
+                  <div className="font-mono text-xs mt-1" style={{ color: '#2D3D56' }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -148,7 +148,7 @@ function ImportModal({ onClose, onImported }) {
             )}
           </div>
         )}
-        <div className="flex gap-2 justify-end pt-2" style={{ borderTop: '0.5px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex gap-2 justify-end pt-2" style={{ borderTop: '1px solid #192030' }}>
           <button onClick={onClose} className="btn-secondary">Close</button>
           {result
             ? <button onClick={handleReset} className="btn-primary">Import another file</button>
@@ -266,13 +266,13 @@ function ActionsMenu({ vm, canWrite, onDelete }) {
         ⋮
       </button>
       {open && createPortal(
-        <div style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 9999, width: '160px', background: '#12151e', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '6px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', padding: '4px 0' }}
+        <div style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 9999, width: '160px', background: '#0D1119', border: '1px solid #22304A', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', padding: '4px 0' }}
           onMouseDown={e => e.stopPropagation()}>
           {items.map(item => (
             <button key={item.label} onClick={item.action}
-              style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontFamily: 'monospace', fontSize: '12px', color: item.danger ? '#e87878' : 'rgba(255,255,255,0.6)', background: 'none', border: 'none', cursor: 'pointer' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; if (!item.danger) e.currentTarget.style.color = '#1d9e75'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = item.danger ? '#e87878' : 'rgba(255,255,255,0.6)'; }}>
+              style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontFamily: '"IBM Plex Sans", sans-serif', fontSize: '12px', color: item.danger ? '#F87171' : '#596B88', background: 'none', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#131A27'; if (!item.danger) e.currentTarget.style.color = '#C8D3E8'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = item.danger ? '#F87171' : '#596B88'; }}>
               {item.label}
             </button>
           ))}
@@ -379,7 +379,7 @@ export default function VMList() {
 
   const SortIndicator = ({ col }) => {
     if (sortCol !== col) return <span style={{ opacity: 0.2, fontSize: '10px', marginLeft: '3px' }}>↕</span>;
-    return <span style={{ fontSize: '10px', marginLeft: '3px', color: '#1d9e75' }}>{sortOrder === 'asc' ? '↑' : '↓'}</span>;
+    return <span style={{ fontSize: '10px', marginLeft: '3px', color: '#E07B35' }}>{sortOrder === 'asc' ? '↑' : '↓'}</span>;
   };
 
   const onHeaderMouseDown = (e, colId) => {
@@ -453,7 +453,7 @@ export default function VMList() {
           <span>Connectivity</span>
           <button title="Refresh" onClick={e => { e.stopPropagation(); fetchReachability(vms); }}
             disabled={reachChecking}
-            style={{ background: 'none', border: 'none', cursor: reachChecking ? 'wait' : 'pointer', padding: '0 2px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', lineHeight: 1 }}>↺</button>
+            style={{ background: 'none', border: 'none', cursor: reachChecking ? 'wait' : 'pointer', padding: '0 2px', color: '#2D3D56', fontSize: '11px', lineHeight: 1 }}>↺</button>
         </div>
       ),
       cell: info => <StatusDot status={reachability[String(info.row.original.id)]} />,
@@ -462,22 +462,22 @@ export default function VMList() {
       accessorKey: 'vm_name',
       enableHiding: false,
       header: () => <span>VM Name<SortIndicator col="vm_name" /></span>,
-      cell: info => <div className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>{info.getValue()}</div>,
+      cell: info => <div className="font-mono text-sm" style={{ color: '#C8D3E8' }}>{info.getValue()}</div>,
     },
     {
       accessorKey: 'ip_address',
       header: () => <span>IP Address<SortIndicator col="ip_address" /></span>,
-      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{info.getValue() || '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: '#596B88' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'hostname',
       header: () => <span>Hostname</span>,
-      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{info.getValue() || '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: '#596B88' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'hypervisor_name',
       header: () => <span>Hypervisor</span>,
-      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{info.getValue() || '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: '#596B88' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'environment',
@@ -509,51 +509,51 @@ export default function VMList() {
     {
       accessorKey: 'os_type',
       header: () => <span>OS Type</span>,
-      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{info.getValue() || '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: '#596B88' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'os_version',
       header: () => <span>OS Version</span>,
-      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{info.getValue() || '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: '#596B88' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'owner',
       header: () => <span>Owner<SortIndicator col="owner" /></span>,
-      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{info.getValue() || '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: '#596B88' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'department',
       header: () => <span>Department<SortIndicator col="department" /></span>,
-      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{info.getValue() || '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: '#596B88' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'application',
       header: () => <span>Application</span>,
-      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{info.getValue() || '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: '#596B88' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'vcpu',
       header: () => <span>vCPU</span>,
-      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{info.getValue() ?? '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: '#596B88' }}>{info.getValue() ?? '—'}</div>,
     },
     {
       accessorKey: 'ram_gb',
       header: () => <span>RAM (GB)</span>,
-      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{info.getValue() != null ? `${info.getValue()} GB` : '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: '#596B88' }}>{info.getValue() != null ? `${info.getValue()} GB` : '—'}</div>,
     },
     {
       accessorKey: 'disk_gb',
       header: () => <span>Disk (GB)</span>,
-      cell: info => <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{info.getValue() != null ? `${info.getValue()} GB` : '—'}</div>,
+      cell: info => <div className="font-mono text-xs" style={{ color: '#596B88' }}>{info.getValue() != null ? `${info.getValue()} GB` : '—'}</div>,
     },
     {
       accessorKey: 'expiry_date',
       header: () => <span>Expiry Date<SortIndicator col="expiry_date" /></span>,
       cell: info => {
         const val = info.getValue();
-        if (!val) return <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>—</div>;
+        if (!val) return <div className="font-mono text-xs" style={{ color: '#2D3D56' }}>—</div>;
         const days = Math.ceil((new Date(val) - new Date()) / 86400000);
-        const color = days < 0 ? '#ef4444' : days <= 7 ? '#f59e0b' : 'rgba(255,255,255,0.5)';
+        const color = days < 0 ? '#F87171' : days <= 7 ? '#FBBF24' : '#596B88';
         const suffix = days < 0 ? ' (expired)' : days <= 7 ? ` (${days}d)` : '';
         return <div className="font-mono text-xs" style={{ color }}>{val}{suffix}</div>;
       },
@@ -561,14 +561,14 @@ export default function VMList() {
     {
       accessorKey: 'primary_username',
       header: () => <span>Username</span>,
-      cell: info => <div className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>{info.getValue() || '—'}</div>,
+      cell: info => <div className="font-mono text-sm" style={{ color: '#596B88' }}>{info.getValue() || '—'}</div>,
     },
     {
       accessorKey: 'created_at',
       header: () => <span>Created<SortIndicator col="created_at" /></span>,
       cell: info => {
         const val = info.getValue();
-        return <div className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        return <div className="font-mono text-xs" style={{ color: '#2D3D56' }}>
           {val ? new Date(val.replace(' ', 'T') + 'Z').toLocaleDateString('en-GB') : '—'}
         </div>;
       },
@@ -599,8 +599,8 @@ export default function VMList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#e8e8e8', margin: 0 }}>Virtual Machines</h1>
-          <p className="font-mono text-sm mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Total: {total} VMs</p>
+          <h1 style={{ fontSize: '18px', fontWeight: 600, color: '#C8D3E8', margin: 0, fontFamily: '"IBM Plex Sans", sans-serif' }}>Virtual Machines</h1>
+          <p style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: '12px', marginTop: '2px', color: '#2D3D56' }}>Total: {total} VMs</p>
         </div>
         <div className="flex gap-2 items-center">
           {/* Column picker */}
@@ -610,11 +610,11 @@ export default function VMList() {
               Columns ▾
             </button>
             {showColPicker && (
-              <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, width: '196px', background: '#12151e', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '8px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px 6px', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Columns</span>
+              <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 200, width: '196px', background: '#0D1119', border: '1px solid #22304A', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.7)', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px 6px', borderBottom: '1px solid #192030' }}>
+                  <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: '10px', color: '#2D3D56', textTransform: 'uppercase', letterSpacing: '0.09em' }}>Columns</span>
                   <button onClick={() => { setColVis({ ...DEFAULT_VIS }); setColOrder(DEFAULT_ORDER); }}
-                    style={{ fontFamily: 'monospace', fontSize: '10px', color: '#1d9e75', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    style={{ fontFamily: '"IBM Plex Sans", sans-serif', fontSize: '11px', color: '#E07B35', background: 'none', border: 'none', cursor: 'pointer' }}>
                     Reset
                   </button>
                 </div>
@@ -623,13 +623,13 @@ export default function VMList() {
                     const meta = COL_META_MAP[id];
                     const visible = colVis[id] !== false;
                     return (
-                      <label key={id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', cursor: 'pointer', transition: 'background 0.1s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                      <label key={id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', cursor: 'pointer', transition: 'background 0.08s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#131A27'}
                         onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                         <input type="checkbox" checked={visible}
                           onChange={() => setColVis(v => ({ ...v, [id]: !visible }))}
-                          style={{ accentColor: '#1d9e75', flexShrink: 0 }} />
-                        <span style={{ fontFamily: 'monospace', fontSize: '12px', color: visible ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)' }}>
+                          style={{ accentColor: '#E07B35', flexShrink: 0 }} />
+                        <span style={{ fontFamily: '"IBM Plex Sans", sans-serif', fontSize: '12px', color: visible ? '#C8D3E8' : '#2D3D56' }}>
                           {meta.label}
                         </span>
                       </label>
@@ -711,8 +711,8 @@ export default function VMList() {
                         style={{
                           cursor: isDragging ? 'grabbing' : draggable ? 'grab' : 'default',
                           opacity: isDragging ? 0.45 : 1,
-                          background: isDropTarget ? 'rgba(29,158,117,0.12)' : undefined,
-                          borderLeft: isDropTarget ? '2px solid #1d9e75' : undefined,
+                          background: isDropTarget ? 'rgba(224,123,53,0.1)' : undefined,
+                          borderLeft: isDropTarget ? '2px solid #E07B35' : undefined,
                           userSelect: 'none',
                           whiteSpace: 'nowrap',
                         }}

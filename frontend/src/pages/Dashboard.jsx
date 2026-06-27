@@ -29,20 +29,20 @@ const ACTION_ICON = {
 function StatCard({ label, value, dot, sub }) {
     return (
         <div style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '0.5px solid rgba(255,255,255,0.07)',
-            borderRadius: '8px',
+            background: '#0D1119',
+            border: '1px solid #192030',
+            borderRadius: '4px',
             padding: '12px 14px',
         }}>
-            <div style={{ fontFamily: 'monospace', fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginBottom: '6px' }}>
+            <div style={{ fontFamily: '"IBM Plex Sans", sans-serif', fontSize: '11px', color: '#2D3D56', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                 {label}
             </div>
-            <div style={{ fontSize: '22px', fontWeight: 600, color: '#e8e8e8', marginBottom: '6px' }}>
+            <div style={{ fontSize: '22px', fontWeight: 600, color: '#C8D3E8', marginBottom: '6px', fontFamily: '"IBM Plex Sans", sans-serif' }}>
                 {value ?? '—'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dot, flexShrink: 0 }} />
-                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>{sub}</span>
+                <span style={{ fontSize: '10px', color: '#2D3D56', fontFamily: '"IBM Plex Mono", monospace' }}>{sub}</span>
             </div>
         </div>
     );
@@ -51,9 +51,9 @@ function StatCard({ label, value, dot, sub }) {
 function PanelShell({ icon, title, right, children }) {
     return (
         <div style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '0.5px solid rgba(255,255,255,0.07)',
-            borderRadius: '8px',
+            background: '#0D1119',
+            border: '1px solid #192030',
+            borderRadius: '4px',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -63,11 +63,11 @@ function PanelShell({ icon, title, right, children }) {
                 alignItems: 'center',
                 gap: '7px',
                 padding: '8px 12px',
-                borderBottom: '0.5px solid rgba(255,255,255,0.07)',
+                borderBottom: '1px solid #192030',
             }}>
-                <i className={`ti ${icon}`} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)' }} />
-                <span style={{ fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>{title}</span>
-                <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,0.25)', fontFamily: 'monospace' }}>{right}</span>
+                <i className={`ti ${icon}`} style={{ fontSize: '13px', color: '#2D3D56' }} />
+                <span style={{ fontSize: '12px', fontWeight: 500, color: '#596B88', fontFamily: '"IBM Plex Sans", sans-serif' }}>{title}</span>
+                <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#2D3D56', fontFamily: '"IBM Plex Mono", monospace' }}>{right}</span>
             </div>
             {children}
         </div>
@@ -120,7 +120,7 @@ export default function Dashboard() {
 
     if (loading) {
         return (
-            <div style={{ padding: '24px', fontFamily: 'monospace', fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>
+            <div style={{ padding: '24px', fontFamily: '"IBM Plex Mono", monospace', fontSize: '12px', color: '#2D3D56' }}>
                 Loading…
             </div>
         );
@@ -131,8 +131,8 @@ export default function Dashboard() {
 
             {/* Page heading */}
             <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '4px' }}>
-                <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#e8e8e8' }}>Dashboard</h1>
-                <span style={{ marginLeft: 'auto', fontFamily: 'monospace', fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>
+                <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#C8D3E8', fontFamily: '"IBM Plex Sans", sans-serif' }}>Dashboard</h1>
+                <span style={{ marginLeft: 'auto', fontFamily: '"IBM Plex Mono", monospace', fontSize: '11px', color: '#2D3D56' }}>
                     {longDate()}
                 </span>
             </div>
@@ -142,7 +142,7 @@ export default function Dashboard() {
                 <StatCard
                     label="Total VMs"
                     value={stats?.total ?? 0}
-                    dot="#1d9e75"
+                    dot="#34D399"
                     sub={`${activeVmCount} active`}
                 />
                 <StatCard
@@ -178,33 +178,34 @@ export default function Dashboard() {
                                         padding: '6px 10px',
                                         textAlign: 'left',
                                         fontSize: '10px',
-                                        color: 'rgba(255,255,255,0.3)',
+                                        color: '#2D3D56',
                                         fontWeight: 500,
-                                        letterSpacing: '0.07em',
-                                        borderBottom: '0.5px solid rgba(255,255,255,0.05)',
+                                        letterSpacing: '0.09em',
+                                        fontFamily: '"IBM Plex Mono", monospace',
+                                        borderBottom: '1px solid #192030',
                                     }}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {vms.map((vm, i) => (
-                                <tr key={vm.id} style={{ borderBottom: i < vms.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none' }}>
-                                    <td style={{ padding: '7px 10px', fontFamily: 'monospace', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                                <tr key={vm.id} style={{ borderBottom: i < vms.length - 1 ? '1px solid #192030' : 'none' }}>
+                                    <td style={{ padding: '7px 10px', fontFamily: '"IBM Plex Mono", monospace', fontSize: '12px', color: '#C8D3E8' }}>
                                         {vm.vm_name}
                                     </td>
-                                    <td style={{ padding: '7px 10px', fontFamily: 'monospace', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                                    <td style={{ padding: '7px 10px', fontFamily: '"IBM Plex Mono", monospace', fontSize: '12px', color: '#596B88' }}>
                                         {vm.ip_address}
                                     </td>
                                     <td style={{ padding: '7px 10px' }}>
                                         {vm.environment ? (
                                             <span style={{
-                                                ...(ENV_STYLE[vm.environment] || { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }),
+                                                ...(ENV_STYLE[vm.environment] || { background: '#131A27', color: '#596B88' }),
                                                 fontSize: '11px',
-                                                fontFamily: 'monospace',
+                                                fontFamily: '"IBM Plex Mono", monospace',
                                                 padding: '2px 7px',
-                                                borderRadius: '4px',
+                                                borderRadius: '3px',
                                             }}>{vm.environment}</span>
-                                        ) : <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '12px' }}>—</span>}
+                                        ) : <span style={{ color: '#2D3D56', fontSize: '12px' }}>—</span>}
                                     </td>
                                 </tr>
                             ))}
@@ -225,18 +226,18 @@ export default function Dashboard() {
                                 alignItems: 'flex-start',
                                 gap: '10px',
                                 padding: '7px 12px',
-                                borderBottom: i < activity.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none',
+                                borderBottom: i < activity.length - 1 ? '1px solid #192030' : 'none',
                             }}>
-                                <i className={`ti ${icon}`} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', marginTop: '1px', flexShrink: 0 }} />
+                                <i className={`ti ${icon}`} style={{ fontSize: '13px', color: '#2D3D56', marginTop: '1px', flexShrink: 0 }} />
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: '11px', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>
+                                    <div style={{ fontSize: '11px', fontWeight: 500, color: '#C8D3E8', fontFamily: '"IBM Plex Sans", sans-serif' }}>
                                         {entry.username}
                                     </div>
-                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '1px' }}>
+                                    <div style={{ fontSize: '11px', color: '#596B88', marginTop: '1px', fontFamily: '"IBM Plex Sans", sans-serif' }}>
                                         {detail}
                                     </div>
                                 </div>
-                                <span style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgba(255,255,255,0.2)', flexShrink: 0, marginTop: '2px' }}>
+                                <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: '10px', color: '#2D3D56', flexShrink: 0, marginTop: '2px' }}>
                                     {fmt(entry.created_at)}
                                 </span>
                             </div>

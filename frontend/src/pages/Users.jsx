@@ -69,7 +69,7 @@ function NotifyToggle({ userId, enabled, onChange }) {
         borderRadius: '10px',
         border: 'none',
         cursor: busy ? 'wait' : 'pointer',
-        background: enabled ? '#1d9e75' : 'rgba(255,255,255,0.12)',
+        background: enabled ? '#34D399' : '#22304A',
         transition: 'background 0.2s',
         flexShrink: 0,
         padding: 0,
@@ -340,14 +340,14 @@ function ActionsMenu({ user, onEdit, onReset, onDeactivate }) {
         title="Actions">⋮</button>
       {open && createPortal(
         <div
-          style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 9999, width: '140px', background: '#12151e', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '6px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', padding: '4px 0' }}
+          style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 9999, width: '148px', background: '#0D1119', border: '1px solid #22304A', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', padding: '4px 0' }}
           onMouseDown={e => e.stopPropagation()}
         >
           {items.map(item => (
             <button key={item.label} onClick={item.action}
-              style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontFamily: 'monospace', fontSize: '12px', color: item.danger ? '#e87878' : 'rgba(255,255,255,0.6)', background: 'none', border: 'none', cursor: 'pointer' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; if (!item.danger) e.currentTarget.style.color = '#1d9e75'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = item.danger ? '#e87878' : 'rgba(255,255,255,0.6)'; }}
+              style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontFamily: '"IBM Plex Sans", sans-serif', fontSize: '12px', color: item.danger ? '#F87171' : '#596B88', background: 'none', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#131A27'; if (!item.danger) e.currentTarget.style.color = '#C8D3E8'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = item.danger ? '#F87171' : '#596B88'; }}
             >{item.label}</button>
           ))}
         </div>,
@@ -417,7 +417,7 @@ export default function UsersPage() {
                   <td>
                     <div className="flex items-center gap-2">
                       <NotifyToggle userId={u.id} enabled={!!u.notify_expiry} onChange={loadUsers} />
-                      <span className="font-mono text-xs" style={{ color: u.notify_expiry ? '#1d9e75' : 'rgba(255,255,255,0.25)' }}>
+                      <span className="font-mono text-xs" style={{ color: u.notify_expiry ? '#34D399' : '#2D3D56' }}>
                         {u.notify_expiry ? 'on' : 'off'}
                       </span>
                     </div>

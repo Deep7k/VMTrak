@@ -26,42 +26,67 @@ export default function Sidebar() {
 
     return (
         <div style={{
-            width: '220px',
+            width: '200px',
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
             height: '100vh',
-            background: '#0f1117',
-            borderRight: '1px solid rgba(255,255,255,0.06)',
+            background: '#090C12',
+            borderRight: '1px solid #192030',
         }}>
             {/* Logo zone */}
             <div style={{
-                padding: '22px 14px 18px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                padding: '20px 16px 16px',
+                borderBottom: '1px solid #192030',
                 flexShrink: 0,
             }}>
-                {/* App icon */}
-                <svg width="44" height="44" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '10px' }}>
-                    <rect width="40" height="40" rx="9" fill="#1d9e75"/>
-                    <rect x="7" y="9"  width="26" height="6" rx="2" fill="white" opacity="0.95"/>
-                    <rect x="7" y="18" width="26" height="6" rx="2" fill="white" opacity="0.6"/>
-                    <rect x="7" y="27" width="26" height="6" rx="2" fill="white" opacity="0.28"/>
-                    <circle cx="12"   cy="12" r="1.6" fill="#bbf7d0"/>
-                    <circle cx="16.5" cy="12" r="1.6" fill="#bbf7d0" opacity="0.45"/>
-                </svg>
-                <span style={{ fontFamily: 'monospace', fontSize: '15px', fontWeight: 700, color: '#e8e8e8', letterSpacing: '0.04em' }}>
-                    VMTrak
-                </span>
-                <span style={{ fontFamily: 'monospace', fontSize: '10px', color: 'rgba(255,255,255,0.28)', marginTop: '3px', letterSpacing: '0.03em' }}>
-                    Infrastructure Management
-                </span>
+                {/* Wordmark row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {/* Icon: three horizontal rack bars with amber LED dot */}
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0"  y="2"  width="28" height="7" rx="1.5" fill="#131A27" stroke="#22304A" strokeWidth="1"/>
+                        <rect x="0"  y="11" width="28" height="7" rx="1.5" fill="#131A27" stroke="#22304A" strokeWidth="1"/>
+                        <rect x="0"  y="20" width="28" height="7" rx="1.5" fill="#131A27" stroke="#22304A" strokeWidth="1"/>
+                        {/* Status LED: amber, top unit */}
+                        <circle cx="4.5" cy="5.5" r="1.8" fill="#E07B35"/>
+                        {/* Dim LEDs */}
+                        <circle cx="4.5" cy="14.5" r="1.8" fill="#2D3D56"/>
+                        <circle cx="4.5" cy="23.5" r="1.8" fill="#2D3D56"/>
+                        {/* Vent slots */}
+                        <rect x="9" y="4" width="14" height="1" rx="0.5" fill="#22304A"/>
+                        <rect x="9" y="6" width="10" height="1" rx="0.5" fill="#22304A"/>
+                        <rect x="9" y="13" width="14" height="1" rx="0.5" fill="#22304A"/>
+                        <rect x="9" y="15" width="10" height="1" rx="0.5" fill="#22304A"/>
+                        <rect x="9" y="22" width="14" height="1" rx="0.5" fill="#22304A"/>
+                        <rect x="9" y="24" width="10" height="1" rx="0.5" fill="#22304A"/>
+                    </svg>
+                    <div>
+                        <div style={{
+                            fontFamily: '"IBM Plex Sans", -apple-system, sans-serif',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            color: '#C8D3E8',
+                            letterSpacing: '0.02em',
+                            lineHeight: 1.2,
+                        }}>
+                            VMTrak
+                        </div>
+                        <div style={{
+                            fontFamily: '"IBM Plex Mono", monospace',
+                            fontSize: '9px',
+                            color: '#2D3D56',
+                            letterSpacing: '0.06em',
+                            textTransform: 'uppercase',
+                            marginTop: '2px',
+                        }}>
+                            Infrastructure
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Nav items */}
-            <nav style={{ paddingTop: '6px' }}>
+            <nav style={{ paddingTop: '4px', paddingBottom: '4px' }}>
                 {visibleNav.map((item) => {
                     const active = isActive(item.path);
                     return (
@@ -71,29 +96,34 @@ export default function Sidebar() {
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '10px',
-                                padding: '8px 16px',
+                                gap: '9px',
+                                padding: '7px 16px',
                                 width: '100%',
                                 textDecoration: 'none',
-                                background: active ? 'rgba(255,255,255,0.07)' : 'transparent',
-                                borderRadius: 0,
-                                transition: 'background 0.15s',
+                                /* The signature: amber left border instead of fill */
+                                borderLeft: active ? '2px solid #E07B35' : '2px solid transparent',
+                                paddingLeft: active ? '14px' : '14px',
+                                transition: 'border-color 0.1s',
                             }}
-                            onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-                            onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                            onMouseEnter={e => { if (!active) e.currentTarget.style.borderLeftColor = '#22304A'; }}
+                            onMouseLeave={e => { if (!active) e.currentTarget.style.borderLeftColor = 'transparent'; }}
                         >
                             <i
                                 className={`ti ${item.icon}`}
                                 style={{
-                                    fontSize: '16px',
-                                    color: active ? '#1d9e75' : 'rgba(255,255,255,0.4)',
+                                    fontSize: '15px',
+                                    color: active ? '#E07B35' : '#2D3D56',
                                     lineHeight: 1,
+                                    transition: 'color 0.1s',
+                                    flexShrink: 0,
                                 }}
                             />
                             <span style={{
-                                fontFamily: 'monospace',
+                                fontFamily: '"IBM Plex Sans", -apple-system, sans-serif',
                                 fontSize: '13px',
-                                color: active ? '#e8e8e8' : 'rgba(255,255,255,0.55)',
+                                fontWeight: active ? 500 : 400,
+                                color: active ? '#C8D3E8' : '#596B88',
+                                transition: 'color 0.1s',
                             }}>
                                 {item.label}
                             </span>
@@ -105,26 +135,30 @@ export default function Sidebar() {
             {/* Spacer */}
             <div style={{ flex: 1 }} />
 
-            {/* Bottom status */}
+            {/* Bottom status strip */}
             <div style={{
-                borderTop: '1px solid rgba(255,255,255,0.07)',
-                padding: '10px 16px 14px',
+                borderTop: '1px solid #192030',
+                padding: '10px 16px 12px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '7px',
             }}>
+                {/* Pulsing amber dot for "online" */}
                 <span style={{
                     width: '6px',
                     height: '6px',
                     borderRadius: '50%',
-                    background: '#1d9e75',
+                    background: '#34D399',
                     flexShrink: 0,
                 }} />
                 <span style={{
-                    fontFamily: 'monospace',
-                    fontSize: '11px',
-                    color: 'rgba(255,255,255,0.3)',
-                }}>{import.meta.env.VITE_APP_VERSION ?? 'dev'} · online</span>
+                    fontFamily: '"IBM Plex Mono", monospace',
+                    fontSize: '10px',
+                    color: '#2D3D56',
+                    letterSpacing: '0.03em',
+                }}>
+                    {import.meta.env.VITE_APP_VERSION ?? 'dev'} · online
+                </span>
             </div>
         </div>
     );

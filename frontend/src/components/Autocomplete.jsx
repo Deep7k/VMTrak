@@ -54,10 +54,10 @@ export default function Autocomplete({ name, value, onChange, suggestions = [], 
       {showDropdown && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 2px)', left: 0, right: 0, zIndex: 200,
-          background: '#12151e',
-          border: '0.5px solid rgba(255,255,255,0.1)',
-          borderRadius: '6px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          background: '#0D1119',
+          border: '1px solid #22304A',
+          borderRadius: '4px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
           overflowY: 'auto',
           maxHeight: '200px',
         }}>
@@ -68,12 +68,12 @@ export default function Autocomplete({ name, value, onChange, suggestions = [], 
               onMouseDown={() => select(s)}
               style={{
                 width: '100%', textAlign: 'left', padding: '7px 12px',
-                fontFamily: 'ui-monospace, monospace', fontSize: '12px',
-                color: 'rgba(255,255,255,0.6)', background: 'none',
+                fontFamily: '"IBM Plex Mono", monospace', fontSize: '12px',
+                color: '#596B88', background: 'none',
                 border: 'none', cursor: 'pointer', display: 'block',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#1d9e75'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#131A27'; e.currentTarget.style.color = '#C8D3E8'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#596B88'; }}
             >
               {s}
             </button>
