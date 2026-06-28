@@ -194,8 +194,9 @@ export default function HypervisorsPage() {
               <tr><td colSpan={8} className="font-mono text-xs text-slate-500 text-center" style={{ padding: '32px' }}>No hypervisors yet — click "Add Hypervisor" to get started</td></tr>
             ) : hypervisors.map((hv, i) => (
               <tr key={hv.id}
-                style={{ borderBottom: i < hypervisors.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                onClick={() => navigate(`/hypervisors/${hv.id}`)}
+                style={{ borderBottom: i < hypervisors.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', cursor: 'pointer', transition: 'background 0.08s' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#131A27'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <td style={{ padding: '12px 8px 12px 16px', width: '32px' }}>

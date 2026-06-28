@@ -5,7 +5,7 @@ import { hasMinRole } from './Guards';
 const NAV = [
     { label: 'Dashboard',   icon: 'ti-layout-dashboard', path: '/dashboard',   minRole: 'readwrite' },
     { label: 'VMs',         icon: 'ti-server',           path: '/vms',         minRole: 'read' },
-    { label: 'Hypervisors', icon: 'ti-cpu',              path: '/hypervisors', minRole: 'read' },
+    { label: 'Hypervisors', icon: 'ti-cpu',              path: '/hypervisors', minRole: 'readwrite' },
     { label: 'Users',       icon: 'ti-users',            path: '/users',       minRole: 'admin' },
     { label: 'Audit Log',   icon: 'ti-list-details',     path: '/audit',       minRole: 'admin' },
     { label: 'Deleted VMs', icon: 'ti-trash',            path: '/vms/deleted', minRole: 'admin' },
