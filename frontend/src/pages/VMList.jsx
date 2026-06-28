@@ -14,14 +14,14 @@ import api from '../api/client';
 
 // ── Column metadata ────────────────────────────────────────────────────────────
 const COL_META = [
-  { id: 'reach',            label: 'Connectivity',   pinned: false, sortKey: null,          defaultOn: true  },
+  { id: 'reach',            label: 'Power State',     pinned: false, sortKey: null,          defaultOn: true  },
   { id: 'vm_name',          label: 'VM Name',         pinned: true,  sortKey: 'vm_name',     defaultOn: true  },
   { id: 'ip_address',       label: 'IP Address',      pinned: false, sortKey: 'ip_address',  defaultOn: true  },
   { id: 'hostname',         label: 'Hostname',        pinned: false, sortKey: null,          defaultOn: false },
   { id: 'hypervisor_name',  label: 'Hypervisor',      pinned: false, sortKey: null,          defaultOn: true  },
   { id: 'environment',      label: 'Environment',     pinned: false, sortKey: 'environment', defaultOn: true  },
   { id: 'status',           label: 'Status',          pinned: false, sortKey: 'status',      defaultOn: true  },
-  { id: 'power_state',      label: 'Power State',     pinned: false, sortKey: 'power_state', defaultOn: false },
+  { id: 'power_state',      label: 'Guest State',     pinned: false, sortKey: 'power_state', defaultOn: false },
   { id: 'os_type',          label: 'OS Type',         pinned: false, sortKey: null,          defaultOn: false },
   { id: 'os_version',       label: 'OS Version',      pinned: false, sortKey: null,          defaultOn: false },
   { id: 'owner',            label: 'Owner',           pinned: false, sortKey: 'owner',       defaultOn: false },
@@ -450,7 +450,7 @@ export default function VMList() {
       id: 'reach',
       header: () => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span>Connectivity</span>
+          <span>Power State</span>
           <button title="Refresh" onClick={e => { e.stopPropagation(); fetchReachability(vms); }}
             disabled={reachChecking}
             style={{ background: 'none', border: 'none', cursor: reachChecking ? 'wait' : 'pointer', padding: '0 2px', color: '#2D3D56', fontSize: '11px', lineHeight: 1 }}>↺</button>
@@ -499,7 +499,7 @@ export default function VMList() {
     },
     {
       accessorKey: 'power_state',
-      header: () => <span>Power State<SortIndicator col="power_state" /></span>,
+      header: () => <span>Guest State<SortIndicator col="power_state" /></span>,
       cell: info => {
         const val = info.getValue();
         const c = { on: 'bg-emerald-900/40 text-emerald-300', off: 'bg-slate-700 text-slate-400', suspended: 'bg-amber-900/40 text-amber-300', unknown: 'bg-slate-700 text-slate-500' };

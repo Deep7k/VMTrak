@@ -5,7 +5,7 @@ import { hasMinRole } from './Guards';
 const NAV = [
     { label: 'Dashboard',   icon: 'ti-layout-dashboard', path: '/dashboard',   minRole: 'readwrite' },
     { label: 'VMs',         icon: 'ti-server',           path: '/vms',         minRole: 'read' },
-    { label: 'Hypervisors', icon: 'ti-cpu',              path: '/hypervisors', minRole: 'readwrite' },
+    { label: 'Hypervisors', icon: 'ti-cpu',              path: '/hypervisors', minRole: 'read' },
     { label: 'Users',       icon: 'ti-users',            path: '/users',       minRole: 'admin' },
     { label: 'Audit Log',   icon: 'ti-list-details',     path: '/audit',       minRole: 'admin' },
     { label: 'Deleted VMs', icon: 'ti-trash',            path: '/vms/deleted', minRole: 'admin' },
@@ -44,21 +44,22 @@ export default function Sidebar() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     {/* Icon: three horizontal rack bars with amber LED dot */}
                     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="0"  y="2"  width="28" height="7" rx="1.5" fill="#131A27" stroke="#22304A" strokeWidth="1"/>
-                        <rect x="0"  y="11" width="28" height="7" rx="1.5" fill="#131A27" stroke="#22304A" strokeWidth="1"/>
-                        <rect x="0"  y="20" width="28" height="7" rx="1.5" fill="#131A27" stroke="#22304A" strokeWidth="1"/>
-                        {/* Status LED: amber, top unit */}
+                        {/* Rack bars — noticeably lighter than the bg (#090C12) */}
+                        <rect x="0"  y="2"  width="28" height="7" rx="1.5" fill="#1C2E4A" stroke="#2D4870" strokeWidth="1"/>
+                        <rect x="0"  y="11" width="28" height="7" rx="1.5" fill="#162340" stroke="#243D62" strokeWidth="1"/>
+                        <rect x="0"  y="20" width="28" height="7" rx="1.5" fill="#111C32" stroke="#1B2E50" strokeWidth="1"/>
+                        {/* Active amber LED — top unit */}
                         <circle cx="4.5" cy="5.5" r="1.8" fill="#E07B35"/>
-                        {/* Dim LEDs */}
-                        <circle cx="4.5" cy="14.5" r="1.8" fill="#2D3D56"/>
-                        <circle cx="4.5" cy="23.5" r="1.8" fill="#2D3D56"/>
+                        {/* Inactive LEDs */}
+                        <circle cx="4.5" cy="14.5" r="1.8" fill="#1E3050"/>
+                        <circle cx="4.5" cy="23.5" r="1.8" fill="#172540"/>
                         {/* Vent slots */}
-                        <rect x="9" y="4" width="14" height="1" rx="0.5" fill="#22304A"/>
-                        <rect x="9" y="6" width="10" height="1" rx="0.5" fill="#22304A"/>
-                        <rect x="9" y="13" width="14" height="1" rx="0.5" fill="#22304A"/>
-                        <rect x="9" y="15" width="10" height="1" rx="0.5" fill="#22304A"/>
-                        <rect x="9" y="22" width="14" height="1" rx="0.5" fill="#22304A"/>
-                        <rect x="9" y="24" width="10" height="1" rx="0.5" fill="#22304A"/>
+                        <rect x="9" y="4" width="14" height="1" rx="0.5" fill="#2D4870"/>
+                        <rect x="9" y="6" width="10" height="1" rx="0.5" fill="#243D62"/>
+                        <rect x="9" y="13" width="14" height="1" rx="0.5" fill="#243D62"/>
+                        <rect x="9" y="15" width="10" height="1" rx="0.5" fill="#1B2E50"/>
+                        <rect x="9" y="22" width="14" height="1" rx="0.5" fill="#1B2E50"/>
+                        <rect x="9" y="24" width="10" height="1" rx="0.5" fill="#162040"/>
                     </svg>
                     <div>
                         <div style={{
