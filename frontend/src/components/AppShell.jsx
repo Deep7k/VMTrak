@@ -4,7 +4,7 @@ import Header from './Header';
 
 export default function AppShell() {
     return (
-        <div style={{ display: 'flex', height: '100vh', background: '#0a0c10' }}>
+        <div style={{ display: 'flex', height: '100vh', background: '#090C12' }}>
             <Sidebar />
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <Header />

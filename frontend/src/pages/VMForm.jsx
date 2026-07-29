@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
+import Autocomplete from '../components/Autocomplete';
 
 function CredentialsSubCard({ vmId }) {
     const [credentials, setCredentials] = useState([]);
@@ -141,13 +142,14 @@ export default function VMForm() {
         ip_address: '',
         os_type: '',
         os_version: '',
-        hypervisor: '',
+        hypervisor_id: null,
         cluster: '',
         datacenter: '',
         vcpu: '',
         ram_gb: '',
         disk_gb: '',
         environment: 'production',
+        status: 'active',
         owner: '',
         department: '',
         application: '',
@@ -156,12 +158,20 @@ export default function VMForm() {
         notes: '',
     });
     const [hasExpiry, setHasExpiry] = useState(false);
+    const [hypervisors, setHypervisors] = useState([]);
+    const [suggestions, setSuggestions] = useState({ os_version: [], owner: [], department: [], application: [] });
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
+        api.get('/hypervisors').then(r => setHypervisors(r.data)).catch(() => {});
+        ['os_version', 'owner', 'department', 'application'].forEach(field => {
+            api.get(`/vms/field-values?field=${field}`)
+                .then(r => setSuggestions(prev => ({ ...prev, [field]: r.data })))
+                .catch(() => {});
+        });
         if (isEditing) {
             loadVM();
         }
@@ -220,6 +230,13 @@ export default function VMForm() {
     };
 
     if (isLoading) return <div className="p-6 text-slate-400 font-mono">Loading...</div>;
+
+    if (isEditing && error && !formData.id) return (
+        <div className="p-6 space-y-4">
+            <button onClick={() => navigate('/vms')} className="text-emerald-400 hover:text-emerald-300 font-mono text-sm">← Back</button>
+            <div className="p-3 bg-red-900/20 border border-red-700 rounded font-mono text-sm text-red-300">{error}</div>
+        </div>
+    );
 
     return (
         <div className="p-6 space-y-6 max-w-2xl">
@@ -294,8 +311,13 @@ export default function VMForm() {
                     <h2 className="text-sm font-mono font-bold text-slate-300 uppercase mb-4">Infrastructure</h2>
                     <div>
                         <label className="block font-mono text-xs text-slate-400 mb-2">Hypervisor</label>
-                        <input type="text" name="hypervisor" value={formData.hypervisor || ''} onChange={handleChange}
-                            className="input-base" placeholder="e.g. esxi01.indishtech.lan" disabled={isSaving} />
+                        <select name="hypervisor_id" value={formData.hypervisor_id ?? ''} onChange={handleChange}
+                            className="input-base" disabled={isSaving}>
+                            <option value="">— None —</option>
+                            {hypervisors.map(h => (
+                                <option key={h.id} value={h.id}>{h.name}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
@@ -314,12 +336,12 @@ export default function VMForm() {
                         </div>
                         <div>
                             <label className="block font-mono text-xs text-slate-400 mb-2">OS Version</label>
-                            <input
-                                type="text"
+                            <Autocomplete
                                 name="os_version"
                                 value={formData.os_version || ''}
                                 onChange={handleChange}
-                                className="input-base"
+                                suggestions={suggestions.os_version}
+                                placeholder="e.g. Windows 11 Pro"
                                 disabled={isSaving}
                             />
                         </div>
@@ -380,35 +402,43 @@ export default function VMForm() {
                             </select>
                         </div>
                         <div>
+                            <label className="block font-mono text-xs text-slate-400 mb-2">Status</label>
+                            <select name="status" value={formData.status || 'active'} onChange={handleChange} className="input-base" disabled={isSaving}>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="decommissioned">Decommissioned</option>
+                            </select>
+                        </div>
+                        <div>
                             <label className="block font-mono text-xs text-slate-400 mb-2">Owner</label>
-                            <input
-                                type="text"
+                            <Autocomplete
                                 name="owner"
                                 value={formData.owner || ''}
                                 onChange={handleChange}
-                                className="input-base"
+                                suggestions={suggestions.owner}
+                                placeholder="e.g. john.doe@contoso.com"
                                 disabled={isSaving}
                             />
                         </div>
                         <div>
                             <label className="block font-mono text-xs text-slate-400 mb-2">Department</label>
-                            <input
-                                type="text"
+                            <Autocomplete
                                 name="department"
                                 value={formData.department || ''}
                                 onChange={handleChange}
-                                className="input-base"
+                                suggestions={suggestions.department}
+                                placeholder="e.g. IT Infrastructure"
                                 disabled={isSaving}
                             />
                         </div>
                         <div>
                             <label className="block font-mono text-xs text-slate-400 mb-2">Application</label>
-                            <input
-                                type="text"
+                            <Autocomplete
                                 name="application"
                                 value={formData.application || ''}
                                 onChange={handleChange}
-                                className="input-base"
+                                suggestions={suggestions.application}
+                                placeholder="e.g. ERP"
                                 disabled={isSaving}
                             />
                         </div>
@@ -452,11 +482,11 @@ export default function VMForm() {
                 <div>
                     <h2 className="text-sm font-mono font-bold text-slate-300 uppercase mb-4">Notes</h2>
                     <textarea
-                        name="description"
-                        value={formData.description || ''}
+                        name="notes"
+                        value={formData.notes || ''}
                         onChange={handleChange}
                         rows={4}
-                        placeholder="Description..."
+                        placeholder="Notes..."
                         className="input-base"
                         disabled={isSaving}
                     />

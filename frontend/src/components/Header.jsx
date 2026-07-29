@@ -12,7 +12,11 @@ function useBreadcrumb() {
     const { pathname } = useLocation();
     if (pathname.startsWith('/vms/') && pathname.endsWith('/edit')) return ['VMs', 'Edit VM'];
     if (pathname.startsWith('/vms/new')) return ['VMs', 'New VM'];
+    if (pathname.startsWith('/vms/deleted')) return ['VMs', 'Deleted VMs'];
     if (pathname.startsWith('/vms/') && pathname !== '/vms') return ['VMs', 'VM Detail'];
+    if (pathname.startsWith('/hypervisors/new')) return ['Hypervisors', 'New Hypervisor'];
+    if (pathname.startsWith('/hypervisors/') && pathname.endsWith('/edit')) return ['Hypervisors', 'Edit Hypervisor'];
+    if (pathname.startsWith('/hypervisors')) return ['Hypervisors', 'Hypervisors'];
     return BREADCRUMBS[pathname] || BREADCRUMBS['/vms'];
 }
 
@@ -26,52 +30,48 @@ export default function Header() {
             flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
-            padding: '0 16px',
+            padding: '0 20px',
             gap: '10px',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            background: '#0f1117',
+            borderBottom: '1px solid #192030',
+            background: '#090C12',
         }}>
-            {/* Hamburger — mobile only visual, no-op on desktop */}
-            <button
-                style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: '0 4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                }}
-            >
-                <i className="ti ti-menu-2" style={{ fontSize: '16px', color: 'rgba(255,255,255,0.4)' }} />
-            </button>
-
             {/* Breadcrumb */}
-            <div style={{ fontFamily: 'monospace', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.35)' }}>{section}</span>
-                <span style={{ color: 'rgba(255,255,255,0.25)' }}>/</span>
-                <span style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{page}</span>
+            <div style={{
+                fontFamily: '"IBM Plex Sans", -apple-system, sans-serif',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+            }}>
+                <span style={{ color: '#2D3D56' }}>{section}</span>
+                <span style={{ color: '#192030', fontSize: '11px' }}>›</span>
+                <span style={{ color: '#C8D3E8', fontWeight: 500 }}>{page}</span>
             </div>
 
             {/* Right side */}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
+                <span style={{
+                    fontFamily: '"IBM Plex Mono", monospace',
+                    fontSize: '11px',
+                    color: '#2D3D56',
+                }}>
                     {user?.email || user?.username}
                 </span>
                 <button
                     onClick={logout}
                     style={{
-                        fontFamily: 'monospace',
+                        fontFamily: '"IBM Plex Sans", -apple-system, sans-serif',
                         fontSize: '11px',
                         padding: '4px 10px',
-                        border: '0.5px solid rgba(255,255,255,0.15)',
+                        border: '1px solid #22304A',
                         background: 'transparent',
-                        color: 'rgba(255,255,255,0.5)',
-                        borderRadius: '4px',
+                        color: '#596B88',
+                        borderRadius: '3px',
                         cursor: 'pointer',
-                        transition: 'border-color 0.15s, color 0.15s',
+                        transition: 'border-color 0.12s, color 0.12s',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#596B88'; e.currentTarget.style.color = '#C8D3E8'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#22304A'; e.currentTarget.style.color = '#596B88'; }}
                 >
                     Logout
                 </button>

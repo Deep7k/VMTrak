@@ -12,7 +12,7 @@ const router = express.Router();
 const MASKED = '••••••••';
 
 function resolveVm(id) {
-  return db.prepare('SELECT id, vm_name FROM vms WHERE id = ?').get(id);
+  return db.prepare('SELECT id, vm_name FROM vms WHERE id = ? AND deleted_at IS NULL').get(id);
 }
 
 // ── GET /api/vms/:id/credentials ──────────────────────────────────────────────

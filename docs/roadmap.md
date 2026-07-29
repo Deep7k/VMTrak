@@ -1,7 +1,7 @@
 # VMTrak — Roadmap
 
-> Last updated: 2026-06-04
-> Version: v1.0.0 — Production ready
+> Last updated: 2026-06-05
+> Version: v1.2.x — Active development
 
 ---
 
@@ -79,16 +79,40 @@
 
 ---
 
-## Future / v2 Scope
+## Completed — v1.2.x
 
-| Feature | Notes |
-|---------|-------|
-| Dashboard charts | Chart.js or recharts — currently plain counts |
-| Filter-aware CSV export | Currently exports all non-decommissioned |
-| PostgreSQL migration | Schema compatible; swap `better-sqlite3` for `pg` |
-| VM power control | vSphere / Proxmox API integration |
-| SSH key storage | Extend `vm_credentials` with `key_type` for Linux VMs |
-| 2FA / TOTP | Gate credential reveal behind per-user TOTP |
-| Webhook notifications | Teams / Slack in addition to email |
-| Scheduled digest reports | Weekly CSV/Excel email summary |
-| Bulk VM power-state sync | Pull live state from hypervisor API |
+### Import Tool
+- [x] **Improvements to import tool** — case-insensitive enum matching (Windows/WINDOWS/windows all accepted), human-readable Zod error messages per field, NaN pre-check for numeric columns, "Import another file" retry button, taller error panel with row·name·reason format
+- [x] CSV import template trimmed to match VM Create form fields (15 columns, section order)
+
+### Hypervisors
+- [x] **Separate Hypervisor page** — full CRUD page at `/hypervisors` with sidebar link (readwrite+)
+- [x] Hypervisors table: `name`, `hostname`, `type` (VMware vSphere/Proxmox/Hyper-V/KVM/Other), `version`, `status`, `environment`, `vcpu`, `ram_gb`, `disk_gb`, `description`
+- [x] DB migration: `hypervisors` table with FK `vms.hypervisor_id → hypervisors(id)`; existing VM hypervisor text values seeded and backfilled automatically
+- [x] VM Create/Edit form: hypervisor field replaced with dropdown sourced from hypervisors table
+- [x] TCP reachability check per hypervisor (port by type: vSphere 443, Proxmox 8006, Hyper-V 5985, KVM/Other 22)
+- [x] Live status dot + ↺ Check button on hypervisors list
+- [x] `HypervisorForm` page mirrors VM Create layout (Identity/Host/Resources/Notes sections)
+- [x] Three-dot portal menu on hypervisors list (Edit → form page, Delete with confirmation)
+- [x] Delete guard: 409 if VMs are still assigned to the hypervisor
+
+---
+
+## Completed — v1.3.0
+
+### Predictions for Fields
+- [x] **Predictions for Fields** — autocomplete on OS Version, Owner, Department, Application in VM Create/Edit; suggestions pulled live from existing VM data via `GET /api/vms/field-values?field=X`
+
+### Read Permission Restriction
+- [x] **Restrict read permission further** — `department` column added to users table; auth middleware loads email + department on every request; `read` role users see only VMs where `vms.owner` matches their email/username OR `vms.department` matches their department; Users create/edit form exposes the Department field
+
+### Status & UI Polish
+- [x] Status values renamed: `maintenance` → `inactive` across VMs and Hypervisors (DB migration + CHECK constraint update)
+- [x] VM list table: Status column added (active/inactive/decommissioned badge)
+- [x] Users table: Actions (Edit/Reset PW/Deactivate) replaced with three-dot portal menu
+- [x] Reachability column header renamed: STATUS → POWER STATE (VM list and Hypervisors)
+- [x] VM Create/Edit: Status field exposed in form
+
+---
+
+## All roadmap items complete — v1.3.0 production ready

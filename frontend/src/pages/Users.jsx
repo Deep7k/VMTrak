@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../api/client';
 
 function Modal({ title, onClose, children }) {
@@ -68,7 +69,7 @@ function NotifyToggle({ userId, enabled, onChange }) {
         borderRadius: '10px',
         border: 'none',
         cursor: busy ? 'wait' : 'pointer',
-        background: enabled ? '#1d9e75' : 'rgba(255,255,255,0.12)',
+        background: enabled ? '#34D399' : '#22304A',
         transition: 'background 0.2s',
         flexShrink: 0,
         padding: 0,
@@ -89,7 +90,7 @@ function NotifyToggle({ userId, enabled, onChange }) {
 }
 
 function CreateUserModal({ onClose, onCreated }) {
-  const [form, setForm] = useState({ username: '', email: '', password: '', role: 'readwrite', notify_expiry: false });
+  const [form, setForm] = useState({ username: '', email: '', password: '', role: 'readwrite', department: '', notify_expiry: false });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -128,6 +129,10 @@ function CreateUserModal({ onClose, onCreated }) {
             <option value="admin">Admin</option>
           </select>
         </Field>
+        <Field label="Department">
+          <input className="input-base" value={form.department} onChange={set('department')}
+            placeholder="e.g. IT Infrastructure" />
+        </Field>
         <Field label="Expiry Notifications">
           <label className="flex items-center gap-2 cursor-pointer mt-1">
             <input type="checkbox" checked={form.notify_expiry}
@@ -152,6 +157,7 @@ function EditUserModal({ user, onClose, onSaved }) {
   const [form, setForm] = useState({
     email:         user.email,
     role:          user.role,
+    department:    user.department || '',
     is_active:     !!user.is_active,
     notify_expiry: !!user.notify_expiry,
   });
@@ -185,6 +191,11 @@ function EditUserModal({ user, onClose, onSaved }) {
             <option value="readwrite">Read/Write</option>
             <option value="admin">Admin</option>
           </select>
+        </Field>
+        <Field label="Department">
+          <input className="input-base" value={form.department}
+            onChange={e => setForm(f => ({ ...f, department: e.target.value || null }))}
+            placeholder="e.g. IT Infrastructure" />
         </Field>
         <Field label="Active">
           <label className="flex items-center gap-2 cursor-pointer mt-1">
@@ -295,6 +306,57 @@ function ConfirmDeactivate({ user, onClose, onConfirmed }) {
   );
 }
 
+function ActionsMenu({ user, onEdit, onReset, onDeactivate }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos]   = useState({ top: 0, right: 0 });
+  const btnRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    if (!open) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+    setOpen(o => !o);
+  };
+
+  const items = [
+    { label: 'Edit',       action: () => { setOpen(false); onEdit(user); } },
+    { label: 'Reset PW',   action: () => { setOpen(false); onReset(user); } },
+    ...(user.is_active ? [{ label: 'Deactivate', action: () => { setOpen(false); onDeactivate(user); }, danger: true }] : []),
+  ];
+
+  return (
+    <div onClick={e => e.stopPropagation()}>
+      <button ref={btnRef} onClick={handleToggle}
+        className="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-700 text-slate-400 hover:text-slate-100 text-lg leading-none"
+        title="Actions">⋮</button>
+      {open && createPortal(
+        <div
+          style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 9999, width: '148px', background: '#0D1119', border: '1px solid #22304A', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', padding: '4px 0' }}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          {items.map(item => (
+            <button key={item.label} onClick={item.action}
+              style={{ width: '100%', textAlign: 'left', padding: '7px 14px', fontFamily: '"IBM Plex Sans", sans-serif', fontSize: '12px', color: item.danger ? '#F87171' : '#596B88', background: 'none', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#131A27'; if (!item.danger) e.currentTarget.style.color = '#C8D3E8'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = item.danger ? '#F87171' : '#596B88'; }}
+            >{item.label}</button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -339,7 +401,7 @@ export default function UsersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {['Username', 'Email', 'Role', 'Status', 'Notifications', 'Created', 'Actions'].map(h => (
+                {['Username', 'Email', 'Role', 'Department', 'Status', 'Notifications', 'Created', 'Actions'].map(h => (
                   <th key={h}>{h}</th>
                 ))}
               </tr>
@@ -350,11 +412,12 @@ export default function UsersPage() {
                   <td className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>{u.username}</td>
                   <td className="font-mono text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>{u.email}</td>
                   <td><RoleBadge role={u.role} /></td>
+                  <td className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>{u.department || '—'}</td>
                   <td><ActiveBadge active={u.is_active} /></td>
                   <td>
                     <div className="flex items-center gap-2">
                       <NotifyToggle userId={u.id} enabled={!!u.notify_expiry} onChange={loadUsers} />
-                      <span className="font-mono text-xs" style={{ color: u.notify_expiry ? '#1d9e75' : 'rgba(255,255,255,0.25)' }}>
+                      <span className="font-mono text-xs" style={{ color: u.notify_expiry ? '#34D399' : '#2D3D56' }}>
                         {u.notify_expiry ? 'on' : 'off'}
                       </span>
                     </div>
@@ -363,13 +426,12 @@ export default function UsersPage() {
                     {u.created_at ? new Date(u.created_at.replace(' ', 'T') + 'Z').toLocaleDateString('en-GB') : '—'}
                   </td>
                   <td>
-                    <div className="flex gap-2 flex-wrap">
-                      <button onClick={() => setEditTarget(u)} className="btn-secondary text-xs px-2 py-1">Edit</button>
-                      <button onClick={() => setResetTarget(u)} className="btn-secondary text-xs px-2 py-1">Reset PW</button>
-                      {u.is_active ? (
-                        <button onClick={() => setDeactivateTarget(u)} className="btn-danger text-xs px-2 py-1">Deactivate</button>
-                      ) : null}
-                    </div>
+                    <ActionsMenu
+                      user={u}
+                      onEdit={setEditTarget}
+                      onReset={setResetTarget}
+                      onDeactivate={setDeactivateTarget}
+                    />
                   </td>
                 </tr>
               ))}

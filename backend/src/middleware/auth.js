@@ -16,11 +16,11 @@ function authenticate(req, res, next) {
   try {
     const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     // Confirm user still exists and is active
-    const user = db.prepare('SELECT id, username, role, is_active FROM users WHERE id = ?').get(payload.sub);
+    const user = db.prepare('SELECT id, username, email, role, department, is_active FROM users WHERE id = ?').get(payload.sub);
     if (!user || !user.is_active) {
       return res.status(401).json({ error: 'User not found or deactivated' });
     }
-    req.user = { id: user.id, username: user.username, role: user.role };
+    req.user = { id: user.id, username: user.username, email: user.email, role: user.role, department: user.department };
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {

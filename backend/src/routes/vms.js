@@ -26,33 +26,55 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
     const params = [];
 
     if (q.search) {
-      where.push("(vm_name LIKE ? OR hostname LIKE ? OR ip_address LIKE ? OR owner LIKE ?)");
+      where.push(`(
+        vms.vm_name LIKE ? OR vms.hostname LIKE ? OR vms.ip_address LIKE ? OR
+        vms.owner LIKE ? OR vms.department LIKE ? OR vms.application LIKE ? OR
+        vms.os_version LIKE ? OR vms.notes LIKE ? OR vms.mac_address LIKE ? OR
+        vms.vlan LIKE ? OR vms.environment LIKE ? OR vms.status LIKE ? OR
+        h.name LIKE ?
+      )`);
       const s = `%${q.search}%`;
-      params.push(s, s, s, s);
+      params.push(s, s, s, s, s, s, s, s, s, s, s, s, s);
     }
-    if (q.environment) { where.push('environment = ?'); params.push(q.environment); }
-    if (q.status)      { where.push('status = ?');      params.push(q.status); }
-    if (q.power_state) { where.push('power_state = ?'); params.push(q.power_state); }
-    if (q.department)  { where.push('department = ?');  params.push(q.department); }
-    if (q.hypervisor)  { where.push('hypervisor = ?');  params.push(q.hypervisor); }
+    // Read-only users see only VMs they own or belong to their department
+    if (req.user.role === 'read') {
+      const parts = ['vms.owner = ?', 'vms.owner = ?'];
+      params.push(req.user.email ?? '', req.user.username);
+      if (req.user.department) {
+        parts.push('vms.department = ?');
+        params.push(req.user.department);
+      }
+      where.push(`(${parts.join(' OR ')})`);
+    }
+
+    if (q.environment)   { where.push('vms.environment = ?');   params.push(q.environment); }
+    if (q.status)        { where.push('vms.status = ?');        params.push(q.status); }
+    if (q.power_state)   { where.push('vms.power_state = ?');   params.push(q.power_state); }
+    if (q.department)    { where.push('vms.department = ?');    params.push(q.department); }
+    if (q.hypervisor_id) { where.push('vms.hypervisor_id = ?'); params.push(q.hypervisor_id); }
     if (q.expiring_in != null) {
-      where.push("expiry_date IS NOT NULL AND expiry_date <= date('now', ? || ' days')");
+      where.push("vms.expiry_date IS NOT NULL AND vms.expiry_date <= date('now', ? || ' days')");
       params.push(`+${q.expiring_in}`);
     }
 
+    where.push('vms.deleted_at IS NULL');
     const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
     const sortCol = SORTABLE.has(q.sort) ? q.sort : 'created_at';
     const order = q.order === 'asc' ? 'ASC' : 'DESC';
     const offset = (q.page - 1) * q.limit;
 
-    const total = db.prepare(`SELECT COUNT(*) as n FROM vms ${whereClause}`).get(...params).n;
+    const total = db.prepare(
+      `SELECT COUNT(*) as n FROM vms LEFT JOIN hypervisors h ON vms.hypervisor_id = h.id ${whereClause}`
+    ).get(...params).n;
     const rows = db.prepare(
-      `SELECT vms.*, (
+      `SELECT vms.*, h.name AS hypervisor_name, (
          SELECT username FROM vm_credentials
          WHERE vm_id = vms.id AND account_type = 'primary'
          LIMIT 1
        ) as primary_username
-       FROM vms ${whereClause} ORDER BY ${sortCol} ${order} LIMIT ? OFFSET ?`
+       FROM vms
+       LEFT JOIN hypervisors h ON vms.hypervisor_id = h.id
+       ${whereClause} ORDER BY vms.${sortCol} ${order} LIMIT ? OFFSET ?`
     ).all(...params, q.limit, offset);
 
     res.json({ data: rows, total, page: q.page, limit: q.limit });
@@ -62,7 +84,11 @@ router.get('/', authenticate, requireRole('read'), (req, res, next) => {
 // ── GET /api/vms/export  (CSV) ────────────────────────────────────────────────
 router.get('/export', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
-    const rows = db.prepare("SELECT * FROM vms WHERE status != 'decommissioned'").all();
+    const rows = db.prepare(`
+      SELECT vms.*, h.name AS hypervisor
+      FROM vms LEFT JOIN hypervisors h ON vms.hypervisor_id = h.id
+      WHERE vms.status != 'decommissioned' AND vms.deleted_at IS NULL
+    `).all();
 
     const cols = [
       'vm_name', 'vm_tag', 'description', 'hypervisor', 'cluster', 'datacenter',
@@ -91,13 +117,11 @@ router.get('/export', authenticate, requireRole('readwrite'), (req, res, next) =
   } catch (err) { next(err); }
 });
 
-// ── GET /api/vms/hypervisors ──────────────────────────────────────────────────
+// ── GET /api/vms/hypervisors — kept for backward compat, now reads hypervisors table
 router.get('/hypervisors', authenticate, requireRole('read'), (req, res, next) => {
   try {
-    const rows = db.prepare(
-      "SELECT DISTINCT hypervisor FROM vms WHERE hypervisor IS NOT NULL AND hypervisor != '' ORDER BY hypervisor"
-    ).all();
-    res.json(rows.map(r => r.hypervisor));
+    const rows = db.prepare('SELECT id, name FROM hypervisors ORDER BY name').all();
+    res.json(rows);
   } catch (err) { next(err); }
 });
 
@@ -112,7 +136,7 @@ router.get('/reachability', authenticate, requireRole('read'), async (req, res, 
 
     const placeholders = ids.map(() => '?').join(',');
     const vms = db.prepare(
-      `SELECT id, ip_address, os_type FROM vms WHERE id IN (${placeholders})`
+      `SELECT id, ip_address, os_type FROM vms WHERE id IN (${placeholders}) AND deleted_at IS NULL`
     ).all(...ids);
 
     const checkPort = (ip, port) => new Promise(resolve => {
@@ -158,25 +182,47 @@ router.post(
 
       if (rows.length === 0) return res.status(400).json({ error: 'CSV contains no data rows' });
 
-      const NUMERIC = ['vcpu', 'ram_gb', 'disk_gb'];
-      const errors  = [];
-      let imported  = 0;
+      const NUMERIC   = ['vcpu', 'ram_gb', 'disk_gb'];
+      const OS_TYPES  = ['Windows', 'Linux', 'Other'];
+      const errors    = [];
+      let imported    = 0;
+
+      // Produce a short human-readable reason from a Zod error
+      const FIELD_HINTS = {
+        vm_name:     'is required (max 128 chars)',
+        os_type:     'must be Windows, Linux, or Other',
+        environment: 'must be production, staging, development, or test',
+        status:      'must be active, inactive, or decommissioned',
+        power_state: 'must be on, off, suspended, or unknown',
+        expiry_date: 'must be in YYYY-MM-DD format',
+        vcpu:        'must be a positive integer',
+        ram_gb:      'must be a positive number',
+        disk_gb:     'must be a positive number',
+      };
+      function formatZodErrors(zodError) {
+        return zodError.errors.map(e => {
+          const field = e.path[0];
+          return `${field}: ${FIELD_HINTS[field] ?? e.message.toLowerCase()}`;
+        }).join('; ');
+      }
 
       const insert = db.prepare(`
         INSERT INTO vms (
-          vm_name, vm_tag, description, hypervisor, cluster, datacenter,
+          vm_name, vm_tag, description, hypervisor_id, cluster, datacenter,
           os_type, os_version, hostname, ip_address, vlan, mac_address,
           vcpu, ram_gb, disk_gb, power_state, environment, status,
           owner, department, application, expiry_date, notes,
           created_at, updated_at, created_by, updated_by
         ) VALUES (
-          @vm_name, @vm_tag, @description, @hypervisor, @cluster, @datacenter,
+          @vm_name, @vm_tag, @description, @hypervisor_id, @cluster, @datacenter,
           @os_type, @os_version, @hostname, @ip_address, @vlan, @mac_address,
           @vcpu, @ram_gb, @disk_gb, @power_state, @environment, @status,
           @owner, @department, @application, @expiry_date, @notes,
           @now, @now, @user_id, @user_id
         )
       `);
+      const findHv   = db.prepare('SELECT id FROM hypervisors WHERE LOWER(name) = LOWER(?)');
+      const insertHv = db.prepare('INSERT INTO hypervisors (name) VALUES (?)');
 
       const runImport = db.transaction(() => {
         const now = new Date().toISOString();
@@ -188,18 +234,44 @@ router.post(
           const row = {};
           for (const [k, v] of Object.entries(rawRow)) {
             const key = k.toLowerCase().trim();
-            row[key] = v === '' ? undefined : v;
+            row[key] = (v === '' || v == null) ? undefined : v;
           }
+
+          // Case-insensitive enum normalisation
+          if (row.os_type) {
+            const match = OS_TYPES.find(v => v.toLowerCase() === String(row.os_type).toLowerCase());
+            row.os_type = match ?? row.os_type; // keep original if no match so Zod reports the error
+          }
+          for (const f of ['environment', 'status', 'power_state']) {
+            if (row[f]) row[f] = String(row[f]).toLowerCase().trim();
+          }
+
+          // Numeric fields — catch non-numeric values before Zod sees them
           for (const f of NUMERIC) {
-            if (row[f] != null) row[f] = Number(row[f]);
+            if (row[f] != null) {
+              const n = Number(row[f]);
+              if (isNaN(n)) {
+                errors.push({ row: rowNum, vm_name: row.vm_name || '', reason: `${f}: must be a number (got "${row[f]}")` });
+                return;
+              }
+              row[f] = n;
+            }
           }
+
+          // Resolve hypervisor text → hypervisor_id (create if not exists)
+          if (row.hypervisor) {
+            let hv = findHv.get(row.hypervisor);
+            if (!hv) {
+              const r = insertHv.run(row.hypervisor);
+              hv = { id: r.lastInsertRowid };
+            }
+            row.hypervisor_id = hv.id;
+          }
+          delete row.hypervisor;
 
           const result = vmSchema.safeParse(row);
           if (!result.success) {
-            const fieldErrors = result.error.flatten().fieldErrors;
-            const reason = Object.entries(fieldErrors)
-              .map(([f, e]) => `${f}: ${e[0]}`).join('; ');
-            errors.push({ row: rowNum, vm_name: rawRow.vm_name || '', reason });
+            errors.push({ row: rowNum, vm_name: row.vm_name || '', reason: formatZodErrors(result.error) });
             return;
           }
 
@@ -207,7 +279,8 @@ router.post(
           try {
             insert.run({
               vm_name: d.vm_name, vm_tag: d.vm_tag ?? null,
-              description: d.description ?? null, hypervisor: d.hypervisor ?? null,
+              description:   d.description   ?? null,
+              hypervisor_id: d.hypervisor_id ?? null,
               cluster: d.cluster ?? null, datacenter: d.datacenter ?? null,
               os_type: d.os_type ?? null, os_version: d.os_version ?? null,
               hostname: d.hostname ?? null, ip_address: d.ip_address ?? null,
@@ -243,11 +316,55 @@ router.post(
   }
 );
 
+// ── GET /api/vms/field-values?field=X ────────────────────────────────────────
+// Returns distinct non-empty values for a whitelisted VM field — used for
+// autocomplete suggestions in the VM create/edit form.
+router.get('/field-values', authenticate, requireRole('read'), (req, res, next) => {
+  try {
+    const ALLOWED = new Set(['os_version', 'owner', 'department', 'application']);
+    const field   = req.query.field;
+    if (!ALLOWED.has(field)) return res.status(400).json({ error: 'Invalid field' });
+
+    const rows = db.prepare(
+      `SELECT DISTINCT ${field} FROM vms
+       WHERE ${field} IS NOT NULL AND ${field} != '' AND deleted_at IS NULL
+       ORDER BY ${field}`
+    ).all();
+    res.json(rows.map(r => r[field]));
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/vms/deleted ──────────────────────────────────────────────────────
+router.get('/deleted', authenticate, requireRole('admin'), (req, res, next) => {
+  try {
+    const rows = db.prepare(`
+      SELECT vms.*, h.name AS hypervisor_name,
+             u.username AS deleted_by_username
+      FROM vms
+      LEFT JOIN hypervisors h ON vms.hypervisor_id = h.id
+      LEFT JOIN users u ON vms.deleted_by = u.id
+      WHERE vms.deleted_at IS NOT NULL
+      ORDER BY vms.deleted_at DESC
+    `).all();
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
 // ── GET /api/vms/:id ──────────────────────────────────────────────────────────
 router.get('/:id', authenticate, requireRole('read'), (req, res, next) => {
   try {
-    const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
+    const vm = db.prepare(`
+      SELECT vms.*, h.name AS hypervisor_name
+      FROM vms LEFT JOIN hypervisors h ON vms.hypervisor_id = h.id
+      WHERE vms.id = ? AND vms.deleted_at IS NULL
+    `).get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
+
+    if (req.user.role === 'read') {
+      const ownsVm = vm.owner === req.user.email || vm.owner === req.user.username;
+      const inDept = req.user.department && vm.department === req.user.department;
+      if (!ownsVm && !inDept) return res.status(403).json({ error: 'Access denied' });
+    }
     writeAudit({ user_id: req.user.id, username: req.user.username, action: 'vm.view', entity_type: 'vm', entity_id: vm.id, entity_name: vm.vm_name, ip_address: getIp(req) });
     res.json(vm);
   } catch (err) { next(err); }
@@ -264,7 +381,7 @@ router.post('/', authenticate, requireRole('readwrite'), (req, res, next) => {
       vm_name: data.vm_name,
       vm_tag: data.vm_tag ?? null,
       description: data.description ?? null,
-      hypervisor: data.hypervisor ?? null,
+      hypervisor_id: data.hypervisor_id ?? null,
       cluster: data.cluster ?? null,
       datacenter: data.datacenter ?? null,
       os_type: data.os_type ?? null,
@@ -290,13 +407,13 @@ router.post('/', authenticate, requireRole('readwrite'), (req, res, next) => {
 
     const result = db.prepare(`
       INSERT INTO vms (
-        vm_name, vm_tag, description, hypervisor, cluster, datacenter,
+        vm_name, vm_tag, description, hypervisor_id, cluster, datacenter,
         os_type, os_version, hostname, ip_address, vlan, mac_address,
         vcpu, ram_gb, disk_gb, power_state, environment, status,
         owner, department, application, expiry_date, notes,
         created_at, updated_at, created_by, updated_by
       ) VALUES (
-        @vm_name, @vm_tag, @description, @hypervisor, @cluster, @datacenter,
+        @vm_name, @vm_tag, @description, @hypervisor_id, @cluster, @datacenter,
         @os_type, @os_version, @hostname, @ip_address, @vlan, @mac_address,
         @vcpu, @ram_gb, @disk_gb, @power_state, @environment, @status,
         @owner, @department, @application, @expiry_date, @notes,
@@ -318,7 +435,7 @@ router.post('/', authenticate, requireRole('readwrite'), (req, res, next) => {
 // ── PUT /api/vms/:id  [admin] ─────────────────────────────────────────────────
 router.put('/:id', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
-    const existing = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
+    const existing = db.prepare('SELECT * FROM vms WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'VM not found' });
 
     const data = validate(updateVmSchema, req.body);
@@ -340,14 +457,47 @@ router.put('/:id', authenticate, requireRole('readwrite'), (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// ── DELETE /api/vms/:id  [admin] ──────────────────────────────────────────────
+// ── DELETE /api/vms/:id  (soft-delete, reason required) ──────────────────────
 router.delete('/:id', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
-    const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
+    const vm = db.prepare('SELECT * FROM vms WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
 
-    db.prepare('DELETE FROM vms WHERE id = ?').run(req.params.id);
-    writeAudit({ user_id: req.user.id, username: req.user.username, action: 'vm.delete', entity_type: 'vm', entity_id: vm.id, entity_name: vm.vm_name, ip_address: getIp(req) });
+    const reason = (req.body?.reason || '').trim();
+    if (!reason) return res.status(400).json({ error: 'delete_reason is required' });
+
+    const now = new Date().toISOString();
+    db.prepare(
+      'UPDATE vms SET deleted_at = ?, deleted_by = ?, delete_reason = ? WHERE id = ?'
+    ).run(now, req.user.id, reason, vm.id);
+
+    writeAudit({
+      user_id: req.user.id, username: req.user.username,
+      action: 'vm.delete', entity_type: 'vm',
+      entity_id: vm.id, entity_name: vm.vm_name,
+      detail: { reason },
+      ip_address: getIp(req),
+    });
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/vms/:id/restore ─────────────────────────────────────────────────
+router.post('/:id/restore', authenticate, requireRole('readwrite'), (req, res, next) => {
+  try {
+    const vm = db.prepare('SELECT * FROM vms WHERE id = ? AND deleted_at IS NOT NULL').get(req.params.id);
+    if (!vm) return res.status(404).json({ error: 'VM not found or not deleted' });
+
+    db.prepare(
+      'UPDATE vms SET deleted_at = NULL, deleted_by = NULL, delete_reason = NULL, updated_at = ?, updated_by = ? WHERE id = ?'
+    ).run(new Date().toISOString(), req.user.id, vm.id);
+
+    writeAudit({
+      user_id: req.user.id, username: req.user.username,
+      action: 'vm.restore', entity_type: 'vm',
+      entity_id: vm.id, entity_name: vm.vm_name,
+      ip_address: getIp(req),
+    });
     res.json({ ok: true });
   } catch (err) { next(err); }
 });
@@ -355,7 +505,7 @@ router.delete('/:id', authenticate, requireRole('readwrite'), (req, res, next) =
 // ── GET /api/vms/:id/rdp ──────────────────────────────────────────────────────
 router.get('/:id/rdp', authenticate, requireRole('readwrite'), (req, res, next) => {
   try {
-    const vm = db.prepare('SELECT * FROM vms WHERE id = ?').get(req.params.id);
+    const vm = db.prepare('SELECT * FROM vms WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
     if (!vm) return res.status(404).json({ error: 'VM not found' });
     if (!vm.ip_address) return res.status(400).json({ error: 'VM has no IP address configured' });
 

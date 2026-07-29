@@ -15,10 +15,12 @@ const initialSetupSchema = z.object({
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 const createUserSchema = z.object({
-  username: z.string().min(2).max(64).regex(/^[a-zA-Z0-9._-]+$/, 'Invalid username'),
-  email:    z.string().email().max(256),
-  password: z.string().min(8).max(256),
-  role:     z.enum(['admin', 'readwrite', 'read']).default('readwrite'),
+  username:      z.string().min(2).max(64).regex(/^[a-zA-Z0-9._-]+$/, 'Invalid username'),
+  email:         z.string().email().max(256),
+  password:      z.string().min(8).max(256),
+  role:          z.enum(['admin', 'readwrite', 'read']).default('readwrite'),
+  department:    z.string().max(128).optional().nullable(),
+  notify_expiry: z.boolean().optional().default(false),
 });
 
 const updateUserSchema = z.object({
@@ -26,6 +28,7 @@ const updateUserSchema = z.object({
   role:          z.enum(['admin', 'readwrite', 'read']).optional(),
   is_active:     z.boolean().optional(),
   notify_expiry: z.boolean().optional(),
+  department:    z.string().max(128).optional().nullable(),
 });
 
 const resetPasswordSchema = z.object({
@@ -40,7 +43,7 @@ const vmSchema = z.object({
   description: z.string().max(1024).optional().nullable(),
 
   // Infrastructure
-  hypervisor:  z.string().max(128).optional().nullable(),
+  hypervisor_id: z.coerce.number().int().positive().optional().nullable(),
   cluster:     z.string().max(128).optional().nullable(),
   datacenter:  z.string().max(128).optional().nullable(),
 
@@ -62,7 +65,7 @@ const vmSchema = z.object({
   // State
   power_state: z.enum(['on', 'off', 'suspended', 'unknown']).default('unknown'),
   environment: z.enum(['production', 'staging', 'development', 'test']).optional().nullable(),
-  status:      z.enum(['active', 'decommissioned', 'maintenance']).default('active'),
+  status:      z.enum(['active', 'inactive', 'decommissioned']).default('active'),
 
   // Ownership
   owner:       z.string().max(256).optional().nullable(),
@@ -108,16 +111,34 @@ const auditQuerySchema = z.object({
 const vmQuerySchema = z.object({
   search:      z.string().optional(),
   environment: z.enum(['production', 'staging', 'development', 'test']).optional(),
-  status:      z.enum(['active', 'decommissioned', 'maintenance']).optional(),
+  status:      z.enum(['active', 'inactive', 'decommissioned']).optional(),
   power_state: z.enum(['on', 'off', 'suspended', 'unknown']).optional(),
-  department:  z.string().optional(),
-  hypervisor:  z.string().optional(),
-  expiring_in: z.coerce.number().int().min(0).optional(),
+  department:   z.string().optional(),
+  hypervisor_id: z.coerce.number().int().optional(),
+  expiring_in:  z.coerce.number().int().min(0).optional(),
   page:        z.coerce.number().int().min(1).default(1),
   limit:       z.coerce.number().int().min(1).max(200).default(50),
   sort:        z.string().default('created_at'),
   order:       z.enum(['asc', 'desc']).default('desc'),
 });
+
+// ── Hypervisors ───────────────────────────────────────────────────────────────
+const HYPERVISOR_TYPES = ['VMware vSphere', 'Proxmox', 'Hyper-V', 'KVM', 'Other'];
+
+const createHypervisorSchema = z.object({
+  name:        z.string().min(1).max(128),
+  hostname:    z.string().max(253).optional().nullable(),
+  type:        z.enum(HYPERVISOR_TYPES).optional().nullable(),
+  version:     z.string().max(64).optional().nullable(),
+  description: z.string().max(1024).optional().nullable(),
+  status:      z.enum(['active', 'inactive', 'decommissioned']).default('active'),
+  environment: z.enum(['production', 'test']).optional().nullable(),
+  vcpu:        z.number().int().positive().optional().nullable(),
+  ram_gb:      z.number().positive().optional().nullable(),
+  disk_gb:     z.number().positive().optional().nullable(),
+});
+
+const updateHypervisorSchema = createHypervisorSchema.partial();
 
 // ── Validate helper ───────────────────────────────────────────────────────────
 /**
@@ -146,5 +167,7 @@ module.exports = {
   updateCredentialSchema,
   auditQuerySchema,
   vmQuerySchema,
+  createHypervisorSchema,
+  updateHypervisorSchema,
   validate,
 };

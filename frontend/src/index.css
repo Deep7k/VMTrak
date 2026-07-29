@@ -2,44 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ─────────────────────────────────────────────────────────
+   Palette: deep navy-black + amber accent.
+   Amber (#E07B35) is the hardware ops colour: rack status LEDs, IPMI
+   interfaces, alert indicators. Every other dark SaaS picks teal; this doesn't.
+   Typography: IBM Plex Sans for UI chrome, IBM Plex Mono for data fields
+   (IPs, hostnames, timestamps). Fixed-width only where fixed-width earns it.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+    --bg:            #090C12;
+    --surface-0:     #0D1119;
+    --surface-1:     #131A27;
+    --border-subtle: #192030;
+    --border-mid:    #22304A;
+    --text-1:        #C8D3E8;
+    --text-2:        #596B88;
+    --text-3:        #2D3D56;
+    --accent:        #E07B35;
+    --accent-dim:    rgba(224,123,53,0.13);
+    --accent-text:   #F4A96A;
+    --s-on:          #34D399;
+    --s-off:         #F87171;
+    --s-warn:        #FBBF24;
+    --font-ui:       "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-data:     "IBM Plex Mono", "Consolas", "Menlo", monospace;
+}
+
 @layer base {
     html {
-        background: #0a0c10;
-        color: #e8e8e8;
+        background: var(--bg);
+        color: var(--text-1);
     }
     body {
-        font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+        font-family: var(--font-ui);
+    }
+    * {
+        box-sizing: border-box;
     }
 }
 
 @layer components {
-    /* ── Cards ── */
+
+    /* ── Cards / table containers ─────────────────────────────────────────── */
     .card-base {
-        background: rgba(255,255,255,0.04);
-        border: 0.5px solid rgba(255,255,255,0.07);
-        border-radius: 8px;
+        background: var(--surface-0);
+        border: 1px solid var(--border-subtle);
+        border-radius: 4px;
     }
 
-    /* ── Table styles inside cards ── */
     .card-base thead tr {
-        background: rgba(255,255,255,0.03);
-        border-bottom: 0.5px solid rgba(255,255,255,0.07);
+        background: transparent;
+        border-bottom: 1px solid var(--border-subtle);
     }
 
     .card-base thead th {
         padding: 8px 14px;
         text-align: left;
-        font-family: monospace;
+        font-family: var(--font-data);
         font-size: 10px;
         font-weight: 500;
-        color: rgba(255,255,255,0.35);
-        letter-spacing: 0.07em;
+        color: var(--text-3);
+        letter-spacing: 0.09em;
         text-transform: uppercase;
+        white-space: nowrap;
     }
 
     .card-base tbody tr {
-        border-bottom: 0.5px solid rgba(255,255,255,0.05);
-        transition: background 0.12s;
+        border-bottom: 1px solid var(--border-subtle);
+        transition: background 0.08s;
     }
 
     .card-base tbody tr:last-child {
@@ -47,114 +77,134 @@
     }
 
     .card-base tbody tr:hover {
-        background: rgba(255,255,255,0.03);
+        background: var(--surface-1);
     }
 
     .card-base tbody td {
-        padding: 10px 14px;
+        padding: 9px 14px;
+        font-size: 13px;
+        color: var(--text-1);
     }
 
-    /* ── Inputs ── */
+    /* ── Inputs ──────────────────────────────────────────────────────────── */
     .input-base {
         width: 100%;
         padding: 7px 10px;
-        background: rgba(255,255,255,0.05);
-        border: 0.5px solid rgba(255,255,255,0.12);
-        border-radius: 5px;
-        font-family: monospace;
+        background: var(--surface-1);
+        border: 1px solid var(--border-mid);
+        border-radius: 3px;
+        font-family: var(--font-data);
         font-size: 12px;
-        color: rgba(255,255,255,0.8);
+        color: var(--text-1);
         outline: none;
-        transition: border-color 0.15s;
+        transition: border-color 0.12s;
     }
 
     .input-base::placeholder {
-        color: rgba(255,255,255,0.2);
+        color: var(--text-3);
     }
 
     .input-base:focus {
-        border-color: rgba(29,158,117,0.7);
+        border-color: var(--accent);
     }
 
-    /* Force dark background on native select option list */
     select.input-base option {
-        background: #12151e;
-        color: rgba(255,255,255,0.8);
+        background: var(--surface-0);
+        color: var(--text-1);
     }
 
-    /* ── Buttons ── */
+    /* ── Buttons ─────────────────────────────────────────────────────────── */
     .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         padding: 6px 14px;
-        background: #1d9e75;
+        background: var(--accent);
         border: none;
-        border-radius: 5px;
-        font-family: monospace;
+        border-radius: 3px;
+        font-family: var(--font-ui);
         font-size: 12px;
-        font-weight: 500;
+        font-weight: 600;
         color: #fff;
         cursor: pointer;
-        transition: background 0.15s;
+        transition: opacity 0.12s;
+        white-space: nowrap;
     }
 
     .btn-primary:hover {
-        background: #18876a;
+        opacity: 0.85;
     }
 
     .btn-primary:disabled {
-        opacity: 0.5;
+        opacity: 0.38;
         cursor: not-allowed;
     }
 
     .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         padding: 6px 12px;
-        background: rgba(255,255,255,0.06);
-        border: 0.5px solid rgba(255,255,255,0.1);
-        border-radius: 5px;
-        font-family: monospace;
+        background: transparent;
+        border: 1px solid var(--border-mid);
+        border-radius: 3px;
+        font-family: var(--font-ui);
         font-size: 12px;
-        color: rgba(255,255,255,0.55);
+        color: var(--text-2);
         cursor: pointer;
-        transition: background 0.15s, color 0.15s;
+        transition: border-color 0.12s, color 0.12s;
+        white-space: nowrap;
     }
 
     .btn-secondary:hover {
-        background: rgba(255,255,255,0.1);
-        color: rgba(255,255,255,0.85);
+        border-color: var(--text-2);
+        color: var(--text-1);
     }
 
     .btn-secondary:disabled {
-        opacity: 0.4;
+        opacity: 0.35;
         cursor: not-allowed;
     }
 
     .btn-danger {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         padding: 6px 12px;
-        background: rgba(226,75,74,0.12);
-        border: 0.5px solid rgba(226,75,74,0.3);
-        border-radius: 5px;
-        font-family: monospace;
+        background: transparent;
+        border: 1px solid rgba(248,113,113,0.28);
+        border-radius: 3px;
+        font-family: var(--font-ui);
         font-size: 12px;
-        color: #e87878;
+        color: var(--s-off);
         cursor: pointer;
-        transition: background 0.15s;
+        transition: background 0.12s, border-color 0.12s;
+        white-space: nowrap;
     }
 
     .btn-danger:hover {
-        background: rgba(226,75,74,0.22);
+        background: rgba(248,113,113,0.09);
+        border-color: rgba(248,113,113,0.45);
     }
 
     .btn-danger:disabled {
-        opacity: 0.5;
+        opacity: 0.38;
         cursor: not-allowed;
     }
 
-    /* ── Modal ── */
+    /* ── Modals ──────────────────────────────────────────────────────────── */
     .glass-modal {
-        background: #12151e;
-        border: 0.5px solid rgba(255,255,255,0.1);
-        border-radius: 10px;
+        background: var(--surface-0);
+        border: 1px solid var(--border-mid);
+        border-radius: 6px;
         width: 100%;
         max-width: 28rem;
         padding: 24px;
     }
+
+    /* ── Scrollbars ──────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar       { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
 }
